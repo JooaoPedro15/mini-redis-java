@@ -2,19 +2,17 @@ package com.joaopedro.miniredis.core.hash;
 
 import com.joaopedro.miniredis.core.Entry;
 
-public class HashNode {
-    
-    private String key; 
-
+public class HashNode
+{
+    private String key;
     private Entry value;
+    private HashNode next;
 
-    private HashNode proximo;
-
-    public HashNode ( String key, Entry value)
+    public HashNode(String key, Entry value)
     {
         this.key = key;
         this.value = value;
-        this.proximo = null;
+        this.next = null;
     }
 
     public String getKey()
@@ -32,14 +30,13 @@ public class HashNode {
         this.value = value;
     }
 
-    public HashNode getProximo()
+    public HashNode getNext()
     {
-        return proximo;
+        return next;
     }
 
-    public void setProximo(HashNode proximo)
+    public void setNext(HashNode next)
     {
-        this.proximo = proximo;
+        this.next = next;
     }
-
 }
