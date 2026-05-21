@@ -5,29 +5,24 @@ import com.joaopedro.miniredis.core.hash.MiniHashTable;
 
 public class Main
 {
+    // Testa o resize automatico da MiniHashTable.
+    // Insere varias chaves para passar do load factor maximo e verifica se a capacidade aumenta.
     public static void main(String[] args)
     {
         MiniHashTable table = new MiniHashTable();
 
-        table.put("nome", new Entry("joao"));
-        table.put("idade", new Entry("20"));
-        table.put("curso", new Entry("ciencia da computacao"));
+        System.out.println("Capacidade inicial: " + table.capacity());
 
-        System.out.println(table.get("nome").getValue());
-        System.out.println(table.get("idade").getValue());
-        System.out.println(table.get("curso").getValue());
+        for (int i = 0; i < 20; i++)
+        {
+            table.put("key" + i, new Entry("value" + i));
+        }
 
-        table.put("nome", new Entry("joao pedro"));
+        System.out.println("Tamanho: " + table.size());
+        System.out.println("Capacidade final: " + table.capacity());
 
-        System.out.println(table.get("nome").getValue());
-
-        System.out.println(table.containsKey("nome"));
-        System.out.println(table.containsKey("altura"));
-
-        table.remove("idade");
-
-        System.out.println(table.containsKey("idade"));
-        System.out.println(table.size());
-        System.out.println(table.capacity());
+        System.out.println(table.get("key0").getValue());
+        System.out.println(table.get("key10").getValue());
+        System.out.println(table.get("key19").getValue());
     }
 }
