@@ -1,0 +1,150 @@
+package com.joaopedro.miniredis.core;
+
+import com.joaopedro.miniredis.core.hash.MiniHashTable;
+
+public class MiniRedis
+{
+    private MiniHashTable data;
+
+    // Cria o banco em memoria.
+    // Inicializa a tabela hash manual que sera usada para armazenar as chaves e valores.
+    public MiniRedis()
+    {
+        this.data = new MiniHashTable();
+    }
+
+    // Salva uma chave com um valor no banco.
+    // Cria uma nova Entry sem expiracao e coloca essa Entry dentro da tabela hash.
+    public String set(String key, String value)
+    {
+        data.put(key, new Entry(value));
+
+        return "OK";
+    }
+
+    // Busca o valor de uma chave no banco.
+    // Primeiro remove a chave se ela ja estiver expirada, depois busca a Entry na tabela hash.
+    public String get(String key)
+    {
+        String result = null;
+
+        removeIfExpired(key);
+
+        Entry entry = data.get(key);
+
+        if (entry != null)
+        {
+            result = entry.getValue();
+        }
+
+        return result;
+    }
+
+    // Remove uma chave do banco.
+    // Primeiro verifica se a chave expirou, depois tenta remover da tabela hash.
+    // Retorna 1 se removeu e 0 se a chave nao existia.
+    public int del(String key)
+    {
+        int result = 0;
+
+        removeIfExpired(key);
+
+        Entry removed = data.remove(key);
+
+        if (removed != null)
+        {
+            result = 1;
+        }
+
+        return result;
+    }
+
+    // Verifica se uma chave existe no banco.
+    // Primeiro remove a chave se ela estiver expirada, depois consulta a tabela hash.
+    public int exists(String key)
+    {
+        int result = 0;
+
+        removeIfExpired(key);
+
+        if (data.containsKey(key))
+        {
+            result = 1;
+        }
+
+        return result;
+    }
+
+    // Define um tempo de expiracao para uma chave.
+    // Calcula o momento futuro em milissegundos e salva esse valor dentro da Entry.
+    public int expire(String key, long seconds)
+    {
+        int result = 0;
+
+        removeIfExpired(key);
+
+        Entry entry = data.get(key);
+
+        if (entry != null)
+        {
+            long expiresAt = System.currentTimeMillis() + seconds * 1000;
+            entry.setExpiresAt(expiresAt);
+
+            result = 1;
+        }
+
+        return result;
+    }
+
+    // Retorna o tempo restante de vida de uma chave.
+    // Retorna -2 se a chave nao existe, -1 se existe sem expiracao ou os segundos restantes.
+    public long ttl(String key)
+    {
+        long result = -2;
+
+        removeIfExpired(key);
+
+        Entry entry = data.get(key);
+
+        if (entry != null)
+        {
+            if (!entry.isExpired())
+            {
+                result = -1;
+            }
+            else
+            {
+                long millisLeft = entry.getExpiresAt() - System.currentTimeMillis();
+
+                if (millisLeft > 0)
+                {
+                    result = millisLeft / 1000;
+
+                    if (result == 0)
+                    {
+                        result = 1;
+                    }
+                }
+                else
+                {
+                    data.remove(key);
+                    result = -2;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Remove uma chave se ela ja tiver passado do tempo de expiracao.
+    // Busca a Entry na tabela hash e, se estiver expirada, remove a chave do banco.
+    private void removeIfExpired(String key)
+    {
+        Entry entry = data.get(key);
+
+        if (entry != null && entry.isExpired())
+        {
+            data.remove(key);
+        }
+    }
+}
