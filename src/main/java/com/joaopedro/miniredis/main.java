@@ -1,33 +1,37 @@
 package com.joaopedro.miniredis;
 
+import com.joaopedro.miniredis.command.CommandProcessor;
 import com.joaopedro.miniredis.core.MiniRedis;
+
+import java.util.Scanner;
 
 public class Main
 {
-    // Testa os comandos principais do MiniRedis.
-    // Cria o banco, salva chaves, busca valores, testa existencia, expiracao, TTL e remocao.
-    public static void main(String[] args) throws InterruptedException
+    // Inicia o Mini Redis em modo terminal.
+    // Cria o banco, cria o processador de comandos e fica lendo comandos ate o usuario digitar EXIT.
+    public static void main(String[] args)
     {
         MiniRedis redis = new MiniRedis();
+        CommandProcessor processor = new CommandProcessor(redis);
+        Scanner scanner = new Scanner(System.in);
 
-        System.out.println(redis.set("nome", "joao"));
-        System.out.println(redis.get("nome"));
-        System.out.println(redis.exists("nome"));
-        System.out.println(redis.ttl("nome"));
+        String line = "";
 
-        System.out.println(redis.expire("nome", 3));
-        System.out.println(redis.ttl("nome"));
+        System.out.println("Mini Redis Java");
+        System.out.println("Type commands or EXIT to stop.");
 
-        Thread.sleep(4000);
+        while (!line.equalsIgnoreCase("EXIT"))
+        {
+            System.out.print("> ");
+            line = scanner.nextLine();
 
-        System.out.println(redis.get("nome"));
-        System.out.println(redis.exists("nome"));
-        System.out.println(redis.ttl("nome"));
+            if (!line.equalsIgnoreCase("EXIT"))
+            {
+                String response = processor.process(line);
+                System.out.println(response);
+            }
+        }
 
-        System.out.println(redis.set("idade", "20"));
-        System.out.println(redis.get("idade"));
-
-        System.out.println(redis.del("idade"));
-        System.out.println(redis.get("idade"));
+        scanner.close();
     }
 }
