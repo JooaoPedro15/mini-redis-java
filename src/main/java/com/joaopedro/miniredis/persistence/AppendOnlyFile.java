@@ -166,7 +166,7 @@ public class AppendOnlyFile {
         writer.write("SET " + key + " " + entry.getValue());
         writer.write(System.lineSeparator());
 
-        if (entry.isExpired()) {
+        if (entry.getExpiresAt() != null) {
             writer.write("EXPIREAT " + key + " " + entry.getExpiresAt());
             writer.write(System.lineSeparator());
         }
