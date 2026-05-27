@@ -21,7 +21,7 @@ public class MiniHashTable
     // Insere ou atualiza uma chave na tabela hash.
     // Primeiro valida a chave e procura se ela ja existe.
     // Se existir, atualiza o valor. Se nao existir, verifica se precisa aumentar a tabela e cria um novo no.
-    public void put(String key, Entry value)
+    public synchronized void put(String key, Entry value)
     {
         validateKey(key);
 
@@ -52,7 +52,7 @@ public class MiniHashTable
     // Busca uma chave na tabela hash.
     // Usa findNode para procurar o no correto dentro do bucket calculado pela funcao hash.
     // Se encontrar a chave, retorna a Entry associada. Se nao encontrar, retorna null.
-    public Entry get(String key)
+    public synchronized Entry get(String key)
     {
         validateKey(key);
 
@@ -71,7 +71,7 @@ public class MiniHashTable
     // Remove uma chave da tabela hash.
     // Primeiro calcula o indice e percorre a lista usando dois ponteiros: previous e current.
     // Se encontrar a chave, remove o no da lista e retorna a Entry removida.
-    public Entry remove(String key)
+    public  synchronized Entry remove(String key)
     {
         validateKey(key);
 
@@ -113,7 +113,7 @@ public class MiniHashTable
 
     // Verifica se uma chave existe na tabela hash.
     // Usa o metodo get para tentar encontrar a chave e retorna true se ela existir.
-    public boolean containsKey(String key)
+    public synchronized boolean containsKey(String key)
     {
         boolean result = false;
 
@@ -127,14 +127,14 @@ public class MiniHashTable
 
     // Retorna a quantidade de chaves armazenadas.
     // O valor e atualizado sempre que uma chave nova entra ou uma chave existente e removida.
-    public int size()
+    public synchronized int size()
     {
         return size;
     }
 
     // Retorna a capacidade atual da tabela.
     // A capacidade e o tamanho do array de buckets.
-    public int capacity()
+    public synchronized int capacity()
     {
         return buckets.length;
     }
