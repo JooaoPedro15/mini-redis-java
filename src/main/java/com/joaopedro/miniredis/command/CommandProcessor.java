@@ -6,13 +6,22 @@ import com.joaopedro.miniredis.persistence.AppendOnlyFile;
 public class CommandProcessor {
     private MiniRedis redis;
     private AppendOnlyFile aof;
+    private Runnable shutdownHook;
 
-    // Cria o processador de comandos.
-    // Recebe uma instancia do MiniRedis e uma instancia do AOF para executar e
-    // persistir comandos.
+    // Cria o processador de comandos sem shutdown hook.
+    // Delega para o construtor principal passando null no lugar do hook, mantendo
+    // compatibilidade com chamadores que nao precisam do comando SHUTDOWN.
     public CommandProcessor(MiniRedis redis, AppendOnlyFile aof) {
+        this(redis, aof, null);
+    }
+
+    // Cria o processador de comandos com um shutdown hook opcional.
+    // Recebe MiniRedis, AOF e um Runnable que sera executado quando o comando
+    // SHUTDOWN chegar. O hook pode ser null para desabilitar o SHUTDOWN.
+    public CommandProcessor(MiniRedis redis, AppendOnlyFile aof, Runnable shutdownHook) {
         this.redis = redis;
         this.aof = aof;
+        this.shutdownHook = shutdownHook;
     }
 
     // Processa uma linha de texto digitada pelo usuario.
@@ -51,6 +60,8 @@ public class CommandProcessor {
                     response = processFlushAll(parts);
                 } else if (command.equals("REWRITEAOF")) {
                     response = processRewriteAof(parts);
+                } else if (command.equals("SHUTDOWN")) {
+                    response = processShutdown(parts);
                 } else {
                     response = "ERROR unknown command";
                 }
@@ -172,6 +183,24 @@ public class CommandProcessor {
             response = "ERROR usage: TTL key";
         } else {
             response = String.valueOf(redis.ttl(parts[1]));
+        }
+
+        return response;
+    }
+
+    // Processa o comando SHUTDOWN.
+    // Dispara o shutdown hook configurado e responde OK. Se nao houver hook, retorna
+    // erro indicando que o comando nao esta disponivel neste contexto.
+    private String processShutdown(String[] parts) {
+        String response;
+
+        if (parts.length != 1) {
+            response = "ERROR usage: SHUTDOWN";
+        } else if (shutdownHook == null) {
+            response = "ERROR SHUTDOWN not available";
+        } else {
+            shutdownHook.run();
+            response = "OK";
         }
 
         return response;

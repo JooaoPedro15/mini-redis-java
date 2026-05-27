@@ -7,70 +7,148 @@ import com.joaopedro.miniredis.persistence.AppendOnlyFile;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class RedisServer {
     private static final int MAX_CLIENTS = 10;
+    private static final int SHUTDOWN_TIMEOUT_SECONDS = 5;
+    private static final String DEFAULT_AOF_PATH = "data/appendonly.aof";
 
     private int port;
     private MiniRedis redis;
     private CommandProcessor processor;
     private ExecutorService threadPool;
     private AppendOnlyFile aof;
+    private ServerSocket serverSocket;
+    private volatile boolean stopped;
 
-    // Cria o servidor TCP do Mini Redis.
-    // Recebe a porta, cria o banco, carrega o AOF e cria o processador de comandos
-    // compartilhado.
+    // Cria o servidor TCP do Mini Redis usando o caminho padrao do AOF.
+    // Apenas delega para o construtor principal passando data/appendonly.aof.
     public RedisServer(int port) {
+        this(port, DEFAULT_AOF_PATH);
+    }
+
+    // Cria o servidor TCP do Mini Redis com caminho de AOF configuravel.
+    // Recebe a porta e o caminho do AOF, cria o banco, carrega o AOF e monta o
+    // processador de comandos com um hook que dispara o stop em outra thread.
+    public RedisServer(int port, String aofPath) {
         this.port = port;
         this.redis = new MiniRedis();
-        this.aof = new AppendOnlyFile("data/appendonly.aof");
+        this.aof = new AppendOnlyFile(aofPath);
 
         this.aof.load(redis);
 
-        this.processor = new CommandProcessor(redis, aof);
+        this.processor = new CommandProcessor(redis, aof, this::scheduleStop);
         this.threadPool = Executors.newFixedThreadPool(MAX_CLIENTS);
     }
 
     // Inicia o servidor TCP.
-    // Abre um ServerSocket na porta configurada e fica aceitando conexoes de
-    // clientes.
+    // Abre o ServerSocket na porta configurada e aceita conexoes ate stop ser
+    // chamado. Garante que o thread pool seja encerrado mesmo em caso de erro.
     public void start() {
         try {
-            ServerSocket serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket(port);
 
             System.out.println("Mini Redis server started on port " + port);
             System.out.println("Max clients: " + MAX_CLIENTS);
 
             acceptClients(serverSocket);
         } catch (IOException e) {
-            System.out.println("Server error: " + e.getMessage());
+            if (!stopped) {
+                System.out.println("Server error: " + e.getMessage());
+            }
         } finally {
             shutdownThreadPool();
         }
     }
 
+    // Encerra o servidor de forma controlada.
+    // Marca o servidor como parado, fecha o ServerSocket para acordar o accept
+    // bloqueado e desliga o thread pool. E idempotente: chamadas adicionais sao
+    // ignoradas, o que permite usar este metodo como JVM shutdown hook e como
+    // gatilho do comando SHUTDOWN sem efeito colateral.
+    public void stop() {
+        if (stopped) {
+            return;
+        }
+
+        stopped = true;
+
+        System.out.println("Shutting down Mini Redis server...");
+
+        closeServerSocket();
+        shutdownThreadPool();
+    }
+
+    // Agenda o stop em uma thread separada.
+    // Usado como shutdown hook do CommandProcessor para que o cliente que enviou
+    // SHUTDOWN receba a resposta OK antes do socket ser fechado.
+    private void scheduleStop() {
+        Thread stopper = new Thread(this::stop, "mini-redis-shutdown");
+        stopper.setDaemon(true);
+        stopper.start();
+    }
+
     // Aceita clientes conectados ao servidor.
-    // Para cada cliente, cria um ClientHandler e envia esse trabalho para o thread
-    // pool.
+    // Para cada cliente cria um ClientHandler e envia para o thread pool. Ignora
+    // SocketException quando o servidor ja esta parando, pois isso e esperado ao
+    // fechar o ServerSocket durante o shutdown.
     private void acceptClients(ServerSocket serverSocket) throws IOException {
-        while (true) {
-            Socket clientSocket = serverSocket.accept();
+        while (!stopped) {
+            try {
+                Socket clientSocket = serverSocket.accept();
 
-            System.out.println("Client connected: " + clientSocket.getInetAddress());
+                System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-            ClientHandler handler = new ClientHandler(clientSocket, processor);
+                ClientHandler handler = new ClientHandler(clientSocket, processor);
 
-            threadPool.execute(handler);
+                threadPool.execute(handler);
+            } catch (SocketException e) {
+                if (!stopped) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    // Fecha o ServerSocket do servidor.
+    // Trata IOException localmente para garantir que o fluxo de shutdown nao seja
+    // interrompido por falhas ao fechar o socket.
+    private void closeServerSocket() {
+        if (serverSocket != null) {
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                System.out.println("Error closing server socket: " + e.getMessage());
+            }
         }
     }
 
     // Encerra o pool de threads do servidor.
-    // Esse metodo e chamado quando o servidor termina ou ocorre algum erro critico.
+    // Sinaliza shutdown, espera os clientes ativos terminarem ate o timeout
+    // configurado e, se algum nao terminar, forca a interrupcao com shutdownNow.
+    // O timeout protege contra clientes ociosos que nunca encerrariam sozinhos.
     private void shutdownThreadPool() {
-        if (threadPool != null) {
-            threadPool.shutdown();
+        if (threadPool == null) {
+            return;
+        }
+
+        if (threadPool.isShutdown()) {
+            return;
+        }
+
+        threadPool.shutdown();
+
+        try {
+            if (!threadPool.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                threadPool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            threadPool.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 }

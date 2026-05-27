@@ -32,6 +32,7 @@ TTL
 KEYS
 FLUSHALL
 REWRITEAOF
+SHUTDOWN
 QUIT
 ```
 
@@ -39,6 +40,7 @@ Recursos implementados:
 
 - servidor TCP na porta `6379`;
 - multiplos clientes usando thread pool;
+- shutdown gracioso via comando `SHUTDOWN` ou `Ctrl+C`;
 - persistencia AOF em `data/appendonly.aof`;
 - compactacao do AOF com `REWRITEAOF`;
 - tabela hash manual;
@@ -331,9 +333,28 @@ OK
 REWRITEAOF
 OK
 
+SHUTDOWN
+OK
+
 QUIT
 Bye
 ```
+
+## Shutdown gracioso
+
+O servidor pode ser encerrado de duas formas controladas:
+
+- enviando o comando `SHUTDOWN` por qualquer cliente conectado;
+- pressionando `Ctrl+C` no terminal onde o servidor esta rodando.
+
+Em ambos os casos, o servidor:
+
+1. para de aceitar novas conexoes;
+2. fecha o `ServerSocket`;
+3. espera ate 5 segundos os clientes ativos terminarem;
+4. encerra o thread pool, com `shutdownNow` como fallback se o timeout estourar.
+
+O AOF nao precisa ser fechado de forma especial: cada `append` e `rewrite` abre, escreve e fecha o arquivo dentro de um bloco sincronizado. Operacoes que ja receberam `OK` estao no disco antes de o servidor responder.
 
 ## Testes
 
@@ -343,7 +364,8 @@ O projeto tem testes para:
 - `MiniRedis`;
 - `CommandProcessor`;
 - `AppendOnlyFile`;
-- `ClientHandler`.
+- `ClientHandler`;
+- `RedisServer`.
 
 Rodar todos:
 
@@ -367,7 +389,6 @@ mvn test
 - Adicionar snapshot.
 - Implementar comandos adicionais.
 - Criar um benchmark simples.
-- Adicionar shutdown gracioso.
 
 ## Status
 

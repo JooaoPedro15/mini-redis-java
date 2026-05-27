@@ -226,7 +226,56 @@ $reader.ReadLine()
 $client.Close()
 ```
 
-## 7. O que este teste confirma
+## 7. Testar SHUTDOWN
+
+Com o servidor rodando, conecte um cliente e envie o comando `SHUTDOWN`:
+
+```powershell
+$client = [System.Net.Sockets.TcpClient]::new("127.0.0.1", 6379)
+$stream = $client.GetStream()
+$reader = [System.IO.StreamReader]::new($stream)
+$writer = [System.IO.StreamWriter]::new($stream)
+$writer.AutoFlush = $true
+$reader.ReadLine()
+$reader.ReadLine()
+$writer.WriteLine("SHUTDOWN")
+$reader.ReadLine()
+$client.Close()
+```
+
+A resposta esperada e:
+
+```text
+OK
+```
+
+No terminal do servidor, deve aparecer:
+
+```text
+Shutting down Mini Redis server...
+```
+
+E o processo do servidor encerra com codigo 0.
+
+Para confirmar que o servidor parou de aceitar novas conexoes, tente reconectar:
+
+```powershell
+try { [System.Net.Sockets.TcpClient]::new("127.0.0.1", 6379) } catch { "Server stopped: $($_.Exception.InnerException.Message)" }
+```
+
+A resposta deve mencionar que a conexao foi recusada, indicando que a porta nao esta mais aberta.
+
+## 8. Testar shutdown via Ctrl+C
+
+Inicie o servidor e, no mesmo terminal, pressione `Ctrl+C`. O JVM shutdown hook entra em acao e o servidor deve mostrar:
+
+```text
+Shutting down Mini Redis server...
+```
+
+Antes de terminar. Esse hook chama o mesmo metodo `stop` que o comando `SHUTDOWN` utiliza, garantindo o mesmo fluxo de encerramento.
+
+## 9. O que este teste confirma
 
 - O servidor inicia na porta configurada.
 - O servidor aceita conexoes TCP.
@@ -236,3 +285,5 @@ $client.Close()
 - O servidor continua rodando apos um cliente sair.
 - Mais de um cliente pode usar o mesmo servidor.
 - O AOF salva o estado e permite recuperar dados apos reiniciar.
+- `SHUTDOWN` encerra o servidor de forma controlada e libera a porta.
+- `Ctrl+C` aciona o mesmo fluxo de encerramento via JVM shutdown hook.

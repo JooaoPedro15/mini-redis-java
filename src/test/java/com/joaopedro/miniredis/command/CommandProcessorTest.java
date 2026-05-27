@@ -8,6 +8,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -136,6 +137,34 @@ class CommandProcessorTest {
         assertEquals("1", processor.process("DEL session"));
         assertEquals("0", processor.process("EXISTS session"));
         assertEquals("-2", processor.process("TTL session"));
+    }
+
+    @Test
+    void shutdownWithoutHookReturnsError() {
+        CommandProcessor processor = newProcessor();
+
+        assertEquals("ERROR SHUTDOWN not available", processor.process("SHUTDOWN"));
+    }
+
+    @Test
+    void shutdownWithHookReturnsOkAndTriggersHook() {
+        AtomicBoolean triggered = new AtomicBoolean(false);
+        Path aofPath = tempDir.resolve("appendonly.aof");
+
+        CommandProcessor processor = new CommandProcessor(
+                new MiniRedis(),
+                new AppendOnlyFile(aofPath.toString()),
+                () -> triggered.set(true));
+
+        assertEquals("OK", processor.process("SHUTDOWN"));
+        assertTrue(triggered.get(), "shutdown hook should have been triggered");
+    }
+
+    @Test
+    void shutdownWithExtraArgsReturnsUsageError() {
+        CommandProcessor processor = newProcessor();
+
+        assertEquals("ERROR usage: SHUTDOWN", processor.process("SHUTDOWN extra"));
     }
 
     @Test
