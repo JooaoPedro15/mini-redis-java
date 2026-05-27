@@ -39,6 +39,8 @@ public class CommandProcessor {
                 response = processExpire(parts);
             } else if (command.equals("TTL")) {
                 response = processTtl(parts);
+            } else if (command.equals("REWRITEAOF")) {
+                response = processRewriteAof(parts);
             } else {
                 response = "ERROR unknown command";
             }
@@ -159,6 +161,21 @@ public class CommandProcessor {
             response = "ERROR usage: TTL key";
         } else {
             response = String.valueOf(redis.ttl(parts[1]));
+        }
+
+        return response;
+    }
+
+    // Processa o comando REWRITEAOF.
+    // Reescreve o arquivo AOF mantendo apenas o estado atual do banco.
+    private String processRewriteAof(String[] parts) {
+        String response;
+
+        if (parts.length != 1) {
+            response = "ERROR usage: REWRITEAOF";
+        } else {
+            aof.rewrite(redis);
+            response = "OK";
         }
 
         return response;

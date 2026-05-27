@@ -263,4 +263,28 @@ public class MiniHashTable
             throw new IllegalArgumentException("Key cannot be null or empty");
         }
     }
+
+    // Retorna todas as entradas armazenadas na tabela hash.
+// Percorre todos os buckets e copia cada chave encontrada para um array de HashEntry.
+public synchronized HashEntry[] entries()
+{
+    HashEntry[] result = new HashEntry[size];
+
+    int position = 0;
+
+    for (int i = 0; i < buckets.length; i++)
+    {
+        HashNode current = buckets[i];
+
+        while (current != null)
+        {
+            result[position] = new HashEntry(current.getKey(), current.getValue());
+            position++;
+
+            current = current.getNext();
+        }
+    }
+
+    return result;
+}
 }

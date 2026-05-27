@@ -1,6 +1,7 @@
 package com.joaopedro.miniredis.core;
 
 import com.joaopedro.miniredis.core.hash.MiniHashTable;
+import com.joaopedro.miniredis.core.hash.HashEntry;
 
 public class MiniRedis {
     private MiniHashTable data;
@@ -141,4 +142,41 @@ public class MiniRedis {
 
         return result;
     }
+
+    // Retorna todas as entradas validas do banco.
+ // Primeiro remove as chaves expiradas e depois devolve apenas as entradas ainda ativas.
+public HashEntry[] entries()
+{
+    HashEntry[] allEntries = data.entries();
+    HashEntry[] temporary = new HashEntry[allEntries.length];
+
+    int count = 0;
+
+    for (int i = 0; i < allEntries.length; i++)
+    {
+        HashEntry current = allEntries[i];
+
+        if (current != null && current.getValue() != null)
+        {
+            if (current.getValue().isExpired())
+            {
+                data.remove(current.getKey());
+            }
+            else
+            {
+                temporary[count] = current;
+                count++;
+            }
+        }
+    }
+
+    HashEntry[] result = new HashEntry[count];
+
+    for (int i = 0; i < count; i++)
+    {
+        result[i] = temporary[i];
+    }
+
+    return result;
+}
 }
