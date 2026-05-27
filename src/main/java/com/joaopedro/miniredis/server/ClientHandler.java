@@ -52,7 +52,7 @@ public class ClientHandler implements Runnable
 
         String line = reader.readLine();
 
-        while (line != null && !line.equalsIgnoreCase("QUIT"))
+        while (line != null && !isQuitCommand(line))
         {
             String response = processor.process(line);
 
@@ -62,6 +62,20 @@ public class ClientHandler implements Runnable
         }
 
         writer.println("Bye");
+    }
+
+    // Verifica se a linha recebida e o comando QUIT.
+    // Remove espacos extras no inicio e no fim antes de comparar, para permitir encerrar a conexao mesmo com espacos.
+    private boolean isQuitCommand(String line)
+    {
+        boolean result = false;
+
+        if (line != null && line.trim().equalsIgnoreCase("QUIT"))
+        {
+            result = true;
+        }
+
+        return result;
     }
 
     // Fecha a conexao com o cliente.

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,8 +36,8 @@ class CommandProcessorTest {
     void setKeepsValueWithSpaces() {
         CommandProcessor processor = newProcessor();
 
-        assertEquals("OK", processor.process("SET message hello world"));
-        assertEquals("hello world", processor.process("GET message"));
+        assertEquals("OK", processor.process("SET nome joao pedro costa"));
+        assertEquals("joao pedro costa", processor.process("GET nome"));
     }
 
     @Test
@@ -45,6 +46,40 @@ class CommandProcessorTest {
 
         assertEquals("OK", processor.process("   SET    name    John   "));
         assertEquals("John", processor.process("   GET    name   "));
+    }
+
+    @Test
+    void allFinalCommandsWorkThroughProcessor() {
+        CommandProcessor processor = newProcessor();
+
+        assertEquals("PONG", processor.process("PING"));
+        assertEquals("OK", processor.process("SET name John"));
+        assertEquals("John", processor.process("GET name"));
+        assertEquals("1", processor.process("EXISTS name"));
+        assertEquals("1", processor.process("EXPIRE name 10"));
+        assertTrue(isPositiveNumber(processor.process("TTL name")));
+        assertContainsCommandKeys(processor.process("KEYS"), "name");
+        assertEquals("OK", processor.process("REWRITEAOF"));
+        assertEquals("1", processor.process("DEL name"));
+        assertEquals("OK", processor.process("FLUSHALL"));
+        assertEquals("(empty)", processor.process("KEYS"));
+    }
+
+    @Test
+    void missingArgumentsReturnUsageErrors() {
+        CommandProcessor processor = newProcessor();
+
+        assertEquals("ERROR usage: SET key value", processor.process("SET"));
+        assertEquals("ERROR usage: SET key value", processor.process("SET name"));
+        assertEquals("ERROR usage: GET key", processor.process("GET"));
+        assertEquals("ERROR usage: DEL key", processor.process("DEL"));
+        assertEquals("ERROR usage: EXISTS key", processor.process("EXISTS"));
+        assertEquals("ERROR usage: EXPIRE key seconds", processor.process("EXPIRE name"));
+        assertEquals("ERROR usage: TTL key", processor.process("TTL"));
+        assertEquals("ERROR usage: KEYS", processor.process("KEYS extra"));
+        assertEquals("ERROR usage: FLUSHALL", processor.process("FLUSHALL extra"));
+        assertEquals("ERROR usage: REWRITEAOF", processor.process("REWRITEAOF extra"));
+        assertEquals("ERROR usage: PING", processor.process("PING extra"));
     }
 
     @Test
@@ -70,6 +105,24 @@ class CommandProcessorTest {
         processor.process("SET session active");
 
         assertEquals("ERROR seconds must be a number", processor.process("EXPIRE session abc"));
+    }
+
+    @Test
+    void mutatingCommandsKeepWritingToTemporaryAof() throws Exception {
+        CommandProcessor processor = newProcessor();
+        Path aofPath = tempDir.resolve("appendonly.aof");
+
+        processor.process("SET nome joao pedro costa");
+        processor.process("EXPIRE nome 60");
+        processor.process("DEL nome");
+        processor.process("FLUSHALL");
+
+        List<String> lines = Files.readAllLines(aofPath);
+
+        assertTrue(lines.contains("SET nome joao pedro costa"));
+        assertTrue(containsLineStartingWith(lines, "EXPIREAT nome "));
+        assertTrue(lines.contains("DEL nome"));
+        assertTrue(lines.contains("FLUSHALL"));
     }
 
     @Test
@@ -114,6 +167,12 @@ class CommandProcessorTest {
         assertContains(keys, second);
     }
 
+    private void assertContainsCommandKeys(String response, String expected) {
+        String[] keys = response.split(" ");
+
+        assertContains(keys, expected);
+    }
+
     private void assertContains(String[] values, String expected) {
         boolean found = false;
 
@@ -124,5 +183,33 @@ class CommandProcessorTest {
         }
 
         assertTrue(found, "Expected response to contain " + expected);
+    }
+
+    private boolean isPositiveNumber(String value) {
+        boolean result = false;
+
+        try {
+            long number = Long.parseLong(value);
+
+            if (number > 0) {
+                result = true;
+            }
+        } catch (NumberFormatException e) {
+            result = false;
+        }
+
+        return result;
+    }
+
+    private boolean containsLineStartingWith(List<String> lines, String expectedStart) {
+        boolean result = false;
+
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).startsWith(expectedStart)) {
+                result = true;
+            }
+        }
+
+        return result;
     }
 }
