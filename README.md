@@ -54,6 +54,7 @@ Estrutura principal:
 ```text
 src/main/java/com/joaopedro/miniredis
   Main.java
+  ClientMain.java
   core/
     Entry.java
     MiniRedis.java
@@ -66,6 +67,8 @@ src/main/java/com/joaopedro/miniredis
   server/
     RedisServer.java
     ClientHandler.java
+  client/
+    MiniRedisClient.java
   persistence/
     AppendOnlyFile.java
 ```
@@ -101,6 +104,14 @@ Contem o servidor TCP.
 `RedisServer` abre a porta configurada, carrega o AOF ao iniciar e aceita conexoes de clientes.
 
 `ClientHandler` atende cada cliente em uma thread separada. Ele le comandos por linha, envia respostas e encerra a conexao quando recebe `QUIT`.
+
+### `client`
+
+Contem o cliente TCP do Mini Redis.
+
+`MiniRedisClient` abre a conexao com o servidor, envia comandos e devolve a resposta. Cada comando recebe exatamente uma linha de resposta, seguindo o protocolo do servidor.
+
+`ClientMain` e o ponto de entrada do cliente interativo. Ele le comandos do terminal, envia para o servidor pelo `MiniRedisClient` e imprime cada resposta. Encerra ao digitar `QUIT`.
 
 ### `persistence`
 
@@ -218,6 +229,40 @@ javac --release 17 -encoding UTF-8 -d target\classes (Get-ChildItem -Recurse src
 java -cp target\classes com.joaopedro.miniredis.Main
 ```
 
+## Como rodar o cliente Java
+
+Com o servidor ja rodando, abra outro terminal e inicie o cliente:
+
+```powershell
+java -cp target\classes com.joaopedro.miniredis.ClientMain
+```
+
+Por padrao, o cliente conecta em `localhost:6379`. Para apontar para outro host ou porta, passe os argumentos:
+
+```powershell
+java -cp target\classes com.joaopedro.miniredis.ClientMain 127.0.0.1 6379
+```
+
+O cliente exibe as linhas de boas-vindas do servidor e mostra o prompt `>`. Cada linha digitada e enviada como comando e a resposta e impressa logo abaixo.
+
+Exemplo de sessao:
+
+```text
+Connected to localhost:6379
+Mini Redis Java connected
+Type commands or QUIT to disconnect
+> PING
+PONG
+> SET nome joao
+OK
+> GET nome
+joao
+> QUIT
+Bye
+```
+
+Para encerrar a sessao, digite `QUIT`. O cliente envia o comando ao servidor, imprime a resposta `Bye` e fecha o socket.
+
 ## Como testar via TCP no PowerShell
 
 Com o servidor rodando, abra outro PowerShell:
@@ -318,7 +363,6 @@ mvn test
 ## Melhorias futuras
 
 - Implementar uma versao simplificada do protocolo RESP.
-- Criar um cliente Java proprio.
 - Melhorar logs do servidor.
 - Adicionar snapshot.
 - Implementar comandos adicionais.
