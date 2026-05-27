@@ -78,6 +78,8 @@ public class AppendOnlyFile {
                 replayDel(parts, redis);
             } else if (command.equals("EXPIREAT")) {
                 replayExpireAt(parts, redis);
+            } else if (command.equals("FLUSHALL")) {
+                replayFlushAll(parts, redis);
             }
         }
     }
@@ -167,6 +169,15 @@ public class AppendOnlyFile {
         if (entry.isExpired()) {
             writer.write("EXPIREAT " + key + " " + entry.getExpiresAt());
             writer.write(System.lineSeparator());
+        }
+    }
+
+
+    // Reexecuta um comando FLUSHALL salvo no AOF.
+    // Remove todas as chaves do banco durante a reconstrução dos dados.
+    private void replayFlushAll(String[] parts, MiniRedis redis) {
+        if (parts.length == 1) {
+            redis.flushAll();
         }
     }
 }

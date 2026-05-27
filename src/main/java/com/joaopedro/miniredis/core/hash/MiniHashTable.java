@@ -287,4 +287,37 @@ public synchronized HashEntry[] entries()
 
     return result;
 }
+
+
+// Remove todas as chaves da tabela hash.
+// Cria um novo array de buckets com a capacidade padrao e zera a quantidade de elementos.
+public synchronized void clear()
+{
+    this.buckets = new HashNode[DEFAULT_CAPACITY];
+    this.size = 0;
+}
+
+// Retorna todas as chaves armazenadas na tabela hash.
+// Percorre todos os buckets e copia cada chave encontrada para um array de String.
+public synchronized String[] keys()
+{
+    String[] result = new String[size];
+
+    int position = 0;
+
+    for (int i = 0; i < buckets.length; i++)
+    {
+        HashNode current = buckets[i];
+
+        while (current != null)
+        {
+            result[position] = current.getKey();
+            position++;
+
+            current = current.getNext();
+        }
+    }
+
+    return result;
+}
 }

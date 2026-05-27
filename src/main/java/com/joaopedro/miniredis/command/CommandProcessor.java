@@ -41,6 +41,12 @@ public class CommandProcessor {
                 response = processTtl(parts);
             } else if (command.equals("REWRITEAOF")) {
                 response = processRewriteAof(parts);
+            } else if (command.equals("PING")) {
+                response = processPing(parts);
+            } else if (command.equals("KEYS")) {
+                response = processKeys(parts);
+            } else if (command.equals("FLUSHALL")) {
+                response = processFlushAll(parts);
             } else {
                 response = "ERROR unknown command";
             }
@@ -179,5 +185,74 @@ public class CommandProcessor {
         }
 
         return response;
+    }
+
+    // Processa o comando PING.
+    // Verifica se o comando veio sem argumentos e retorna PONG para indicar que o
+    // servidor esta respondendo.
+    private String processPing(String[] parts) {
+        String response;
+
+        if (parts.length != 1) {
+            response = "ERROR usage: PING";
+        } else {
+            response = "PONG";
+        }
+
+        return response;
+    }
+
+    // Processa o comando KEYS.
+    // Retorna todas as chaves ativas do banco em uma unica linha separada por
+    // espaco.
+    private String processKeys(String[] parts) {
+        String response;
+
+        if (parts.length != 1) {
+            response = "ERROR usage: KEYS";
+        } else {
+            String[] keys = redis.keys();
+
+            if (keys.length == 0) {
+                response = "(empty)";
+            } else {
+                response = joinKeys(keys);
+            }
+        }
+
+        return response;
+    }
+
+    // Processa o comando FLUSHALL.
+    // Remove todas as chaves do banco e registra o comando no AOF.
+    private String processFlushAll(String[] parts) {
+        String response;
+
+        if (parts.length != 1) {
+            response = "ERROR usage: FLUSHALL";
+        } else {
+            redis.flushAll();
+            aof.append("FLUSHALL");
+
+            response = "OK";
+        }
+
+        return response;
+    }
+
+    // Junta as chaves em uma unica String.
+    // Percorre o array manualmente e separa as chaves por espaco.
+    private String joinKeys(String[] keys) {
+        String result = "";
+
+        for (int i = 0; i < keys.length; i++) {
+            if (i == 0) {
+                result = keys[i];
+            } else {
+                result = result + " " + keys[i];
+            }
+        }
+
+        return result;
     }
 }

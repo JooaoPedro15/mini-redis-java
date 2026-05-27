@@ -179,4 +179,46 @@ public HashEntry[] entries()
 
     return result;
 }
+
+// Remove todas as chaves do banco.
+// Chama o clear da tabela hash para apagar todos os dados em memoria.
+public void flushAll()
+{
+    data.clear();
+}
+
+// Retorna todas as chaves ativas do banco.
+// Percorre as chaves da tabela, remove as expiradas e devolve apenas as chaves validas.
+public String[] keys()
+{
+    String[] allKeys = data.keys();
+    String[] temporary = new String[allKeys.length];
+
+    int count = 0;
+
+    for (int i = 0; i < allKeys.length; i++)
+    {
+        String key = allKeys[i];
+
+        if (key != null)
+        {
+            removeIfExpired(key);
+
+            if (data.containsKey(key))
+            {
+                temporary[count] = key;
+                count++;
+            }
+        }
+    }
+
+    String[] result = new String[count];
+
+    for (int i = 0; i < count; i++)
+    {
+        result[i] = temporary[i];
+    }
+
+    return result;
+}
 }
