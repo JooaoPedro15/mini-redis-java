@@ -1,176 +1,330 @@
-# Mini Redis Java
+# mini-redis-java
 
-Mini Redis Java is an educational in-memory key-value store inspired by Redis.
-The goal of this project is to understand how a simple storage engine works under
-the hood by implementing the core data structure manually in Java.
+Um Mini Redis educacional feito em Java, com tabela hash manual, TTL, servidor TCP, multiplos clientes e persistencia AOF.
 
-This project is not a production-ready Redis clone. It is a learning project
-focused on hash tables, collision handling, linked nodes, and key-value storage.
+Este projeto nao tenta ser uma copia completa do Redis. A ideia e estudar, com codigo proprio, como algumas pecas de um banco chave-valor em memoria funcionam por dentro.
 
-## Tech Stack
+## Objetivo do projeto
 
-- Java 17
-- Maven
-- Object-oriented programming
-- Manual hash table implementation
+O objetivo principal e praticar conceitos de estruturas de dados, servidor TCP, concorrencia, cache e persistencia.
 
-## What This Project Does
+Na pratica, o projeto junta alguns temas importantes:
 
-The current version implements a custom hash table that can:
+- implementacao manual de tabela hash;
+- tratamento de colisao com lista ligada;
+- comandos inspirados no Redis;
+- expiracao de chaves com TTL;
+- servidor TCP com multiplos clientes;
+- persistencia em arquivo append-only.
 
-- Store values by key
-- Retrieve values by key
-- Update existing keys
-- Remove keys
-- Check if a key exists
-- Track the current number of stored entries
-- Handle hash collisions using linked nodes
+## Funcionalidades
 
-Example:
-
-```java
-MiniHashTable table = new MiniHashTable();
-
-table.put("name", new Entry("Joao"));
-table.put("age", new Entry("20"));
-
-System.out.println(table.get("name").getValue()); // Joao
-
-table.put("name", new Entry("Joao Pedro"));
-
-System.out.println(table.get("name").getValue()); // Joao Pedro
-
-table.remove("age");
-
-System.out.println(table.containsKey("age")); // false
-```
-
-## Internal Structure
-
-The project is built around three main classes:
+Comandos suportados:
 
 ```text
-MiniHashTable
-  Manages the bucket array and decides where each key should be stored.
-
-HashNode
-  Represents one item inside a bucket. It stores the key, the Entry value,
-  and a reference to the next node when collisions happen.
-
-Entry
-  Represents the value stored in the database. It currently stores the string
-  value and expiration metadata.
+PING
+SET
+GET
+DEL
+EXISTS
+EXPIRE
+TTL
+KEYS
+FLUSHALL
+REWRITEAOF
+QUIT
 ```
 
-The storage flow looks like this:
+Recursos implementados:
 
-```text
-key -> hash(key) -> bucket index -> HashNode -> Entry
-```
+- servidor TCP na porta `6379`;
+- multiplos clientes usando thread pool;
+- persistencia AOF em `data/appendonly.aof`;
+- compactacao do AOF com `REWRITEAOF`;
+- tabela hash manual;
+- colisao por lista ligada;
+- resize e rehashing quando a tabela cresce;
+- TTL com expiracao preguicosa;
+- testes unitarios com JUnit Jupiter.
 
-For example:
+## Arquitetura do projeto
 
-```text
-"name" -> hash("name") -> index 3 -> HashNode("name") -> Entry("Joao")
-```
-
-## Why Entry Exists
-
-Instead of storing only a plain `String`, the hash table stores an `Entry`.
-
-That makes it possible to keep extra metadata about a value, such as expiration
-time:
-
-```text
-Entry
-  value = "Joao"
-  expiresAt = null
-```
-
-This is useful because Redis-like systems often need to know not only what the
-value is, but also whether that value is still valid.
-
-## How Collisions Are Handled
-
-Two different keys can generate the same bucket index. When that happens, the
-project stores multiple `HashNode` objects in the same bucket using a linked
-list.
-
-Example:
-
-```text
-buckets[3] -> HashNode("name") -> HashNode("city") -> null
-```
-
-This technique is called separate chaining.
-
-## Project Structure
+Estrutura principal:
 
 ```text
 src/main/java/com/joaopedro/miniredis
   Main.java
   core/
     Entry.java
+    MiniRedis.java
     hash/
+      HashEntry.java
       HashNode.java
       MiniHashTable.java
+  command/
+    CommandProcessor.java
+  server/
+    RedisServer.java
+    ClientHandler.java
+  persistence/
+    AppendOnlyFile.java
 ```
 
-## How To Run
+### `core`
 
-Requirements for the recommended setup:
+Contem a logica principal do banco em memoria.
 
-- Java 17+
-- Maven
+`MiniRedis` oferece operacoes como `set`, `get`, `del`, `exists`, `expire`, `ttl`, `keys` e `flushAll`. Ele usa a `MiniHashTable` como estrutura de armazenamento.
 
-Compile the project with Maven:
+`Entry` representa o valor salvo. Alem da string, ela guarda metadados como `expiresAt`, usado para TTL.
 
-```bash
-mvn compile
+### `core.hash`
+
+Contem a tabela hash manual.
+
+`MiniHashTable` gerencia os buckets, calcula indices, trata colisao, faz resize e rehashing.
+
+`HashNode` representa um no dentro de um bucket. Cada no guarda a chave, a `Entry` e a referencia para o proximo no da lista ligada.
+
+`HashEntry` e usado para exportar pares chave/valor em operacoes como persistencia e listagem.
+
+### `command`
+
+Contem o processador de comandos.
+
+`CommandProcessor` recebe uma linha de texto, identifica o comando e chama o metodo correspondente em `MiniRedis`. Ele tambem registra comandos que alteram estado no AOF.
+
+### `server`
+
+Contem o servidor TCP.
+
+`RedisServer` abre a porta configurada, carrega o AOF ao iniciar e aceita conexoes de clientes.
+
+`ClientHandler` atende cada cliente em uma thread separada. Ele le comandos por linha, envia respostas e encerra a conexao quando recebe `QUIT`.
+
+### `persistence`
+
+Contem a persistencia AOF.
+
+`AppendOnlyFile` grava comandos em arquivo, recarrega o estado ao iniciar e reescreve o arquivo com `REWRITEAOF`.
+
+## Como funciona a MiniHashTable
+
+A `MiniHashTable` usa um array de buckets:
+
+```text
+buckets[0]
+buckets[1]
+buckets[2]
+...
 ```
 
-Run the demo class:
+Cada chave passa por uma funcao de hash. O resultado define em qual posicao do array a chave deve ficar.
 
-```bash
-java -cp target/classes com.joaopedro.miniredis.Main
+Fluxo simplificado:
+
+```text
+key -> hash(key) -> index -> bucket
 ```
 
-If Maven is not installed, you can compile the project directly with `javac`:
+Cada bucket aponta para um `HashNode`. Quando duas chaves caem no mesmo bucket, acontece uma colisao. O projeto resolve isso com lista ligada:
 
-```bash
-javac -d target/classes src/main/java/com/joaopedro/miniredis/Main.java src/main/java/com/joaopedro/miniredis/core/Entry.java src/main/java/com/joaopedro/miniredis/core/hash/HashNode.java src/main/java/com/joaopedro/miniredis/core/hash/MiniHashTable.java
+```text
+buckets[3] -> HashNode("name") -> HashNode("city") -> null
 ```
 
-## Current Learning Goals
+Esse modelo e conhecido como separate chaining.
 
-This project is helping me practice:
+Quando a tabela cresce demais, ela faz resize:
 
-- How hash tables work internally
-- How keys are converted into array indexes
-- How collisions can be solved with linked lists
-- How to separate responsibilities between classes
-- How Redis-like key-value storage works at a basic level
+1. cria um novo array com capacidade maior;
+2. percorre os buckets antigos;
+3. recalcula o indice de cada chave;
+4. reinsere os nos na nova tabela.
 
-## Next Steps
+Esse processo e o rehashing.
 
-Planned improvements:
+## Como funciona o TTL
 
-- Add `EXPIRE` support
-- Add `TTL` support
-- Automatically ignore or remove expired entries
-- Add resizing and rehashing when the table grows
-- Add unit tests
-- Create a simple command-line interface with Redis-like commands such as:
+Cada `Entry` pode ter um campo `expiresAt`.
+
+Quando uma chave nao tem expiracao, `expiresAt` fica `null`.
+
+Quando o comando `EXPIRE key seconds` e usado, o sistema calcula um timestamp futuro em milissegundos:
+
+```text
+expiresAt = agora + segundos
+```
+
+O comando `TTL key` retorna:
+
+- `-2` se a chave nao existe;
+- `-1` se a chave existe sem expiracao;
+- o tempo restante, em segundos, se a chave tem expiracao.
+
+O projeto usa lazy expiration. Isso significa que a chave expirada e removida quando alguem tenta acessar, consultar ou listar essa chave. Nao existe uma thread separada limpando expiracoes em segundo plano.
+
+## Como funciona o AOF
+
+AOF significa append-only file.
+
+Em vez de salvar o banco inteiro a cada mudanca, o projeto grava os comandos que alteram estado:
 
 ```text
 SET name Joao
-GET name
+EXPIREAT name 1760000000000
 DEL name
-EXPIRE name 10
-TTL name
+FLUSHALL
 ```
+
+Ao iniciar, o servidor le `data/appendonly.aof` e reexecuta os comandos para reconstruir o estado em memoria.
+
+O comando `REWRITEAOF` compacta o arquivo. Ele remove historico desnecessario e grava apenas o estado atual das chaves ativas.
+
+Exemplo: se uma chave foi alterada varias vezes, o rewrite salva apenas o valor final.
+
+## Como rodar
+
+Requisitos:
+
+- Java 17 ou superior;
+- Maven, para o fluxo principal de build e testes.
+
+Compile o projeto:
+
+```powershell
+mvn compile
+```
+
+Rode os testes:
+
+```powershell
+mvn test
+```
+
+Inicie o servidor:
+
+```powershell
+java -cp target\classes com.joaopedro.miniredis.Main
+```
+
+O servidor inicia na porta `6379`.
+
+Se o Maven nao estiver disponivel no `PATH`, compile com `javac`:
+
+```powershell
+New-Item -ItemType Directory -Force -Path target\classes
+javac --release 17 -encoding UTF-8 -d target\classes (Get-ChildItem -Recurse src\main\java\*.java).FullName
+java -cp target\classes com.joaopedro.miniredis.Main
+```
+
+## Como testar via TCP no PowerShell
+
+Com o servidor rodando, abra outro PowerShell:
+
+```powershell
+$client = [System.Net.Sockets.TcpClient]::new("127.0.0.1", 6379)
+$stream = $client.GetStream()
+$reader = [System.IO.StreamReader]::new($stream)
+$writer = [System.IO.StreamWriter]::new($stream)
+$writer.AutoFlush = $true
+$reader.ReadLine()
+$reader.ReadLine()
+```
+
+Envie comandos assim:
+
+```powershell
+$writer.WriteLine("PING")
+$reader.ReadLine()
+```
+
+Para encerrar a conexao:
+
+```powershell
+$writer.WriteLine("QUIT")
+$reader.ReadLine()
+$client.Close()
+```
+
+Um guia mais detalhado esta em:
+
+```text
+docs/manual-tcp-test.md
+```
+
+## Exemplos de comandos
+
+```text
+PING
+PONG
+
+SET nome joao pedro costa
+OK
+
+GET nome
+joao pedro costa
+
+EXISTS nome
+1
+
+EXPIRE nome 60
+1
+
+TTL nome
+60
+
+KEYS
+nome
+
+DEL nome
+1
+
+FLUSHALL
+OK
+
+REWRITEAOF
+OK
+
+QUIT
+Bye
+```
+
+## Testes
+
+O projeto tem testes para:
+
+- `MiniHashTable`;
+- `MiniRedis`;
+- `CommandProcessor`;
+- `AppendOnlyFile`;
+- `ClientHandler`.
+
+Rodar todos:
+
+```powershell
+mvn test
+```
+
+## Limitacoes atuais
+
+- Nao implementa o protocolo RESP real.
+- Nao e compativel com `redis-cli`.
+- Nao tem persistencia binaria.
+- O parser e simples e ainda nao trata aspas.
+- O servidor nao tem shutdown gracioso.
+- O projeto e educacional, nao indicado para uso em producao.
+
+## Melhorias futuras
+
+- Implementar uma versao simplificada do protocolo RESP.
+- Criar um cliente Java proprio.
+- Melhorar logs do servidor.
+- Adicionar snapshot.
+- Implementar comandos adicionais.
+- Criar um benchmark simples.
+- Adicionar shutdown gracioso.
 
 ## Status
 
-Work in progress. The basic hash table storage is implemented, and Redis-like
-features will be added gradually.
+Projeto em desenvolvimento. A base atual ja cobre armazenamento em memoria, comandos principais, TTL, persistencia AOF, servidor TCP e testes unitarios.
