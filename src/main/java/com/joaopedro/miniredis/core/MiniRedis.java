@@ -94,7 +94,7 @@ public class MiniRedis {
         Entry entry = data.get(key);
 
         if (entry != null) {
-            if (!entry.isExpired()) {
+            if (entry.getExpiresAt() == null) {
                 result = -1;
             } else {
                 long millisLeft = entry.getExpiresAt() - System.currentTimeMillis();
