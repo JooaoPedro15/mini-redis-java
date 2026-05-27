@@ -2,38 +2,35 @@ package com.joaopedro.miniredis.core;
 
 import com.joaopedro.miniredis.core.hash.MiniHashTable;
 
-public class MiniRedis
-{
+public class MiniRedis {
     private MiniHashTable data;
 
     // Cria o banco em memoria.
-    // Inicializa a tabela hash manual que sera usada para armazenar as chaves e valores.
-    public MiniRedis()
-    {
+    // Inicializa a tabela hash manual que sera usada para armazenar as chaves e
+    // valores.
+    public MiniRedis() {
         this.data = new MiniHashTable();
     }
 
     // Salva uma chave com um valor no banco.
     // Cria uma nova Entry sem expiracao e coloca essa Entry dentro da tabela hash.
-    public String set(String key, String value)
-    {
+    public String set(String key, String value) {
         data.put(key, new Entry(value));
 
         return "OK";
     }
 
     // Busca o valor de uma chave no banco.
-    // Primeiro remove a chave se ela ja estiver expirada, depois busca a Entry na tabela hash.
-    public String get(String key)
-    {
+    // Primeiro remove a chave se ela ja estiver expirada, depois busca a Entry na
+    // tabela hash.
+    public String get(String key) {
         String result = null;
 
         removeIfExpired(key);
 
         Entry entry = data.get(key);
 
-        if (entry != null)
-        {
+        if (entry != null) {
             result = entry.getValue();
         }
 
@@ -43,16 +40,14 @@ public class MiniRedis
     // Remove uma chave do banco.
     // Primeiro verifica se a chave expirou, depois tenta remover da tabela hash.
     // Retorna 1 se removeu e 0 se a chave nao existia.
-    public int del(String key)
-    {
+    public int del(String key) {
         int result = 0;
 
         removeIfExpired(key);
 
         Entry removed = data.remove(key);
 
-        if (removed != null)
-        {
+        if (removed != null) {
             result = 1;
         }
 
@@ -60,15 +55,14 @@ public class MiniRedis
     }
 
     // Verifica se uma chave existe no banco.
-    // Primeiro remove a chave se ela estiver expirada, depois consulta a tabela hash.
-    public int exists(String key)
-    {
+    // Primeiro remove a chave se ela estiver expirada, depois consulta a tabela
+    // hash.
+    public int exists(String key) {
         int result = 0;
 
         removeIfExpired(key);
 
-        if (data.containsKey(key))
-        {
+        if (data.containsKey(key)) {
             result = 1;
         }
 
@@ -76,57 +70,41 @@ public class MiniRedis
     }
 
     // Define um tempo de expiracao para uma chave.
-    // Calcula o momento futuro em milissegundos e salva esse valor dentro da Entry.
-    public int expire(String key, long seconds)
-    {
+    // Calcula o momento futuro em milissegundos e chama expireAt para salvar esse
+    // timestamp.
+    public int expire(String key, long seconds) {
         int result = 0;
 
-        removeIfExpired(key);
+        long expiresAt = System.currentTimeMillis() + seconds * 1000;
 
-        Entry entry = data.get(key);
-
-        if (entry != null)
-        {
-            long expiresAt = System.currentTimeMillis() + seconds * 1000;
-            entry.setExpiresAt(expiresAt);
-
-            result = 1;
-        }
+        result = expireAt(key, expiresAt);
 
         return result;
     }
 
     // Retorna o tempo restante de vida de uma chave.
-    // Retorna -2 se a chave nao existe, -1 se existe sem expiracao ou os segundos restantes.
-    public long ttl(String key)
-    {
+    // Retorna -2 se a chave nao existe, -1 se existe sem expiracao ou os segundos
+    // restantes.
+    public long ttl(String key) {
         long result = -2;
 
         removeIfExpired(key);
 
         Entry entry = data.get(key);
 
-        if (entry != null)
-        {
-            if (!entry.isExpired())
-            {
+        if (entry != null) {
+            if (!entry.isExpired()) {
                 result = -1;
-            }
-            else
-            {
+            } else {
                 long millisLeft = entry.getExpiresAt() - System.currentTimeMillis();
 
-                if (millisLeft > 0)
-                {
+                if (millisLeft > 0) {
                     result = millisLeft / 1000;
 
-                    if (result == 0)
-                    {
+                    if (result == 0) {
                         result = 1;
                     }
-                }
-                else
-                {
+                } else {
                     data.remove(key);
                     result = -2;
                 }
@@ -138,13 +116,29 @@ public class MiniRedis
 
     // Remove uma chave se ela ja tiver passado do tempo de expiracao.
     // Busca a Entry na tabela hash e, se estiver expirada, remove a chave do banco.
-    private void removeIfExpired(String key)
-    {
+    private void removeIfExpired(String key) {
         Entry entry = data.get(key);
 
-        if (entry != null && entry.isExpired())
-        {
+        if (entry != null && entry.isExpired()) {
             data.remove(key);
         }
+    }
+
+    // Define um tempo absoluto de expiracao para uma chave.
+    // Recebe o timestamp em milissegundos e salva esse valor dentro da Entry.
+    public int expireAt(String key, long expiresAt) {
+        int result = 0;
+
+        removeIfExpired(key);
+
+        Entry entry = data.get(key);
+
+        if (entry != null) {
+            entry.setExpiresAt(expiresAt);
+
+            result = 1;
+        }
+
+        return result;
     }
 }

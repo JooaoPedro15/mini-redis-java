@@ -1,59 +1,45 @@
 package com.joaopedro.miniredis.command;
 
 import com.joaopedro.miniredis.core.MiniRedis;
+import com.joaopedro.miniredis.persistence.AppendOnlyFile;
 
-public class CommandProcessor
-{
+public class CommandProcessor {
     private MiniRedis redis;
+    private AppendOnlyFile aof;
 
     // Cria o processador de comandos.
-    // Recebe uma instancia do MiniRedis para conseguir executar os comandos digitados pelo usuario.
-    public CommandProcessor(MiniRedis redis)
-    {
+    // Recebe uma instancia do MiniRedis e uma instancia do AOF para executar e
+    // persistir comandos.
+    public CommandProcessor(MiniRedis redis, AppendOnlyFile aof) {
         this.redis = redis;
+        this.aof = aof;
     }
 
     // Processa uma linha de texto digitada pelo usuario.
-    // Separa o comando principal e chama a funcao correta para SET, GET, DEL, EXISTS, EXPIRE ou TTL.
-    public String process(String input)
-    {
+    // Separa o comando principal e chama a funcao correta para SET, GET, DEL,
+    // EXISTS, EXPIRE ou TTL.
+    public String process(String input) {
         String response;
 
-        if (input == null || input.length() == 0)
-        {
+        if (input == null || input.length() == 0) {
             response = "ERROR empty command";
-        }
-        else
-        {
+        } else {
             String[] parts = input.split(" ", 3);
             String command = parts[0].toUpperCase();
 
-            if (command.equals("SET"))
-            {
+            if (command.equals("SET")) {
                 response = processSet(parts);
-            }
-            else if (command.equals("GET"))
-            {
+            } else if (command.equals("GET")) {
                 response = processGet(parts);
-            }
-            else if (command.equals("DEL"))
-            {
+            } else if (command.equals("DEL")) {
                 response = processDel(parts);
-            }
-            else if (command.equals("EXISTS"))
-            {
+            } else if (command.equals("EXISTS")) {
                 response = processExists(parts);
-            }
-            else if (command.equals("EXPIRE"))
-            {
+            } else if (command.equals("EXPIRE")) {
                 response = processExpire(parts);
-            }
-            else if (command.equals("TTL"))
-            {
+            } else if (command.equals("TTL")) {
                 response = processTtl(parts);
-            }
-            else
-            {
+            } else {
                 response = "ERROR unknown command";
             }
         }
@@ -62,43 +48,36 @@ public class CommandProcessor
     }
 
     // Processa o comando SET.
-    // Verifica se o usuario enviou chave e valor, depois salva os dados usando o MiniRedis.
-    private String processSet(String[] parts)
-    {
+    // Verifica se o usuario enviou chave e valor, salva no MiniRedis e registra o
+    // comando no AOF.
+    private String processSet(String[] parts) {
         String response;
 
-        if (parts.length < 3)
-        {
+        if (parts.length < 3) {
             response = "ERROR usage: SET key value";
-        }
-        else
-        {
+        } else {
             response = redis.set(parts[1], parts[2]);
+
+            aof.append("SET " + parts[1] + " " + parts[2]);
         }
 
         return response;
     }
 
     // Processa o comando GET.
-    // Verifica se o usuario enviou uma chave e busca o valor correspondente no MiniRedis.
-    private String processGet(String[] parts)
-    {
+    // Verifica se o usuario enviou uma chave e busca o valor correspondente no
+    // MiniRedis.
+    private String processGet(String[] parts) {
         String response;
 
-        if (parts.length != 2)
-        {
+        if (parts.length != 2) {
             response = "ERROR usage: GET key";
-        }
-        else
-        {
+        } else {
             String value = redis.get(parts[1]);
 
-            if (value == null)
-            {
+            if (value == null) {
                 response = "(nil)";
-            }
-            else
-            {
+            } else {
                 response = value;
             }
         }
@@ -107,35 +86,35 @@ public class CommandProcessor
     }
 
     // Processa o comando DEL.
-    // Verifica se o usuario enviou uma chave e remove essa chave do MiniRedis.
-    private String processDel(String[] parts)
-    {
+    // Remove a chave do MiniRedis e registra no AOF apenas se alguma chave foi
+    // removida.
+    private String processDel(String[] parts) {
         String response;
 
-        if (parts.length != 2)
-        {
+        if (parts.length != 2) {
             response = "ERROR usage: DEL key";
-        }
-        else
-        {
-            response = String.valueOf(redis.del(parts[1]));
+        } else {
+            int result = redis.del(parts[1]);
+
+            response = String.valueOf(result);
+
+            if (result == 1) {
+                aof.append("DEL " + parts[1]);
+            }
         }
 
         return response;
     }
 
     // Processa o comando EXISTS.
-    // Verifica se o usuario enviou uma chave e retorna 1 se ela existir ou 0 se nao existir.
-    private String processExists(String[] parts)
-    {
+    // Verifica se o usuario enviou uma chave e retorna 1 se ela existir ou 0 se nao
+    // existir.
+    private String processExists(String[] parts) {
         String response;
 
-        if (parts.length != 2)
-        {
+        if (parts.length != 2) {
             response = "ERROR usage: EXISTS key";
-        }
-        else
-        {
+        } else {
             response = String.valueOf(redis.exists(parts[1]));
         }
 
@@ -143,24 +122,26 @@ public class CommandProcessor
     }
 
     // Processa o comando EXPIRE.
-    // Verifica se o usuario enviou chave e segundos, converte os segundos para numero e define a expiracao.
-    private String processExpire(String[] parts)
-    {
+    // Converte os segundos para timestamp absoluto, define a expiracao e salva
+    // EXPIREAT no AOF.
+    private String processExpire(String[] parts) {
         String response;
 
-        if (parts.length != 3)
-        {
+        if (parts.length != 3) {
             response = "ERROR usage: EXPIRE key seconds";
-        }
-        else
-        {
-            try
-            {
+        } else {
+            try {
                 long seconds = Long.parseLong(parts[2]);
-                response = String.valueOf(redis.expire(parts[1], seconds));
-            }
-            catch (NumberFormatException e)
-            {
+                long expiresAt = System.currentTimeMillis() + seconds * 1000;
+
+                int result = redis.expireAt(parts[1], expiresAt);
+
+                response = String.valueOf(result);
+
+                if (result == 1) {
+                    aof.append("EXPIREAT " + parts[1] + " " + expiresAt);
+                }
+            } catch (NumberFormatException e) {
                 response = "ERROR seconds must be a number";
             }
         }
@@ -169,17 +150,14 @@ public class CommandProcessor
     }
 
     // Processa o comando TTL.
-    // Verifica se o usuario enviou uma chave e retorna o tempo restante de vida dessa chave.
-    private String processTtl(String[] parts)
-    {
+    // Verifica se o usuario enviou uma chave e retorna o tempo restante de vida
+    // dessa chave.
+    private String processTtl(String[] parts) {
         String response;
 
-        if (parts.length != 2)
-        {
+        if (parts.length != 2) {
             response = "ERROR usage: TTL key";
-        }
-        else
-        {
+        } else {
             response = String.valueOf(redis.ttl(parts[1]));
         }
 
