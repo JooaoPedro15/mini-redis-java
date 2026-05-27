@@ -16,39 +16,44 @@ public class CommandProcessor {
     }
 
     // Processa uma linha de texto digitada pelo usuario.
-    // Separa o comando principal e chama a funcao correta para SET, GET, DEL,
-    // EXISTS, EXPIRE ou TTL.
+    // Normaliza a entrada, identifica o comando principal e chama a funcao
+    // correspondente.
     public String process(String input) {
         String response;
 
-        if (input == null || input.length() == 0) {
+        if (input == null) {
             response = "ERROR empty command";
         } else {
-            String[] parts = input.split(" ", 3);
-            String command = parts[0].toUpperCase();
+            String[] parts = parseInput(input);
 
-            if (command.equals("SET")) {
-                response = processSet(parts);
-            } else if (command.equals("GET")) {
-                response = processGet(parts);
-            } else if (command.equals("DEL")) {
-                response = processDel(parts);
-            } else if (command.equals("EXISTS")) {
-                response = processExists(parts);
-            } else if (command.equals("EXPIRE")) {
-                response = processExpire(parts);
-            } else if (command.equals("TTL")) {
-                response = processTtl(parts);
-            } else if (command.equals("REWRITEAOF")) {
-                response = processRewriteAof(parts);
-            } else if (command.equals("PING")) {
-                response = processPing(parts);
-            } else if (command.equals("KEYS")) {
-                response = processKeys(parts);
-            } else if (command.equals("FLUSHALL")) {
-                response = processFlushAll(parts);
+            if (parts.length == 0) {
+                response = "ERROR empty command";
             } else {
-                response = "ERROR unknown command";
+                String command = parts[0].toUpperCase();
+
+                if (command.equals("SET")) {
+                    response = processSet(parts);
+                } else if (command.equals("GET")) {
+                    response = processGet(parts);
+                } else if (command.equals("DEL")) {
+                    response = processDel(parts);
+                } else if (command.equals("EXISTS")) {
+                    response = processExists(parts);
+                } else if (command.equals("EXPIRE")) {
+                    response = processExpire(parts);
+                } else if (command.equals("TTL")) {
+                    response = processTtl(parts);
+                } else if (command.equals("PING")) {
+                    response = processPing(parts);
+                } else if (command.equals("KEYS")) {
+                    response = processKeys(parts);
+                } else if (command.equals("FLUSHALL")) {
+                    response = processFlushAll(parts);
+                } else if (command.equals("REWRITEAOF")) {
+                    response = processRewriteAof(parts);
+                } else {
+                    response = "ERROR unknown command";
+                }
             }
         }
 
@@ -251,6 +256,51 @@ public class CommandProcessor {
             } else {
                 result = result + " " + keys[i];
             }
+        }
+
+        return result;
+    }
+
+    // Quebra uma linha de comando em partes principais.
+    // Remove espacos extras no inicio, no fim e entre comando/chave, preservando o
+    // valor do SET.
+    private String[] parseInput(String input) {
+        String normalized = normalizeSpaces(input);
+
+        String[] result;
+
+        if (normalized.length() == 0) {
+            result = new String[0];
+        } else {
+            result = normalized.split(" ", 3);
+        }
+
+        return result;
+    }
+
+    // Normaliza os espacos de uma linha de comando.
+    // Remove espacos extras no inicio/fim e transforma multiplos espacos em apenas
+    // um.
+    private String normalizeSpaces(String input) {
+        String result = "";
+        boolean lastWasSpace = true;
+
+        for (int i = 0; i < input.length(); i++) {
+            char current = input.charAt(i);
+
+            if (current == ' ') {
+                if (!lastWasSpace) {
+                    result = result + current;
+                    lastWasSpace = true;
+                }
+            } else {
+                result = result + current;
+                lastWasSpace = false;
+            }
+        }
+
+        if (result.length() > 0 && result.charAt(result.length() - 1) == ' ') {
+            result = result.substring(0, result.length() - 1);
         }
 
         return result;
