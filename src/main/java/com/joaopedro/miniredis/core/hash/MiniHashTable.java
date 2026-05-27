@@ -71,7 +71,7 @@ public class MiniHashTable
     // Remove uma chave da tabela hash.
     // Primeiro calcula o indice e percorre a lista usando dois ponteiros: previous e current.
     // Se encontrar a chave, remove o no da lista e retorna a Entry removida.
-    public  synchronized Entry remove(String key)
+    public synchronized Entry remove(String key)
     {
         validateKey(key);
 
@@ -265,59 +265,59 @@ public class MiniHashTable
     }
 
     // Retorna todas as entradas armazenadas na tabela hash.
-// Percorre todos os buckets e copia cada chave encontrada para um array de HashEntry.
-public synchronized HashEntry[] entries()
-{
-    HashEntry[] result = new HashEntry[size];
-
-    int position = 0;
-
-    for (int i = 0; i < buckets.length; i++)
+    // Percorre todos os buckets e copia cada chave encontrada para um array de HashEntry.
+    public synchronized HashEntry[] entries()
     {
-        HashNode current = buckets[i];
+        HashEntry[] result = new HashEntry[size];
 
-        while (current != null)
+        int position = 0;
+
+        for (int i = 0; i < buckets.length; i++)
         {
-            result[position] = new HashEntry(current.getKey(), current.getValue());
-            position++;
+            HashNode current = buckets[i];
 
-            current = current.getNext();
+            while (current != null)
+            {
+                result[position] = new HashEntry(current.getKey(), current.getValue());
+                position++;
+
+                current = current.getNext();
+            }
         }
+
+        return result;
     }
 
-    return result;
-}
 
-
-// Remove todas as chaves da tabela hash.
-// Cria um novo array de buckets com a capacidade padrao e zera a quantidade de elementos.
-public synchronized void clear()
-{
-    this.buckets = new HashNode[DEFAULT_CAPACITY];
-    this.size = 0;
-}
-
-// Retorna todas as chaves armazenadas na tabela hash.
-// Percorre todos os buckets e copia cada chave encontrada para um array de String.
-public synchronized String[] keys()
-{
-    String[] result = new String[size];
-
-    int position = 0;
-
-    for (int i = 0; i < buckets.length; i++)
+    // Remove todas as chaves da tabela hash.
+    // Cria um novo array de buckets com a capacidade padrao e zera a quantidade de elementos.
+    public synchronized void clear()
     {
-        HashNode current = buckets[i];
-
-        while (current != null)
-        {
-            result[position] = current.getKey();
-            position++;
-
-            current = current.getNext();
-        }
+        this.buckets = new HashNode[DEFAULT_CAPACITY];
+        this.size = 0;
     }
 
-    return result;
-}
+    // Retorna todas as chaves armazenadas na tabela hash.
+    // Percorre todos os buckets e copia cada chave encontrada para um array de String.
+    public synchronized String[] keys()
+    {
+        String[] result = new String[size];
+
+        int position = 0;
+
+        for (int i = 0; i < buckets.length; i++)
+        {
+            HashNode current = buckets[i];
+
+            while (current != null)
+            {
+                result[position] = current.getKey();
+                position++;
+
+                current = current.getNext();
+            }
+        }
+
+        return result;
+    }
 }

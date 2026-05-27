@@ -144,81 +144,81 @@ public class MiniRedis {
     }
 
     // Retorna todas as entradas validas do banco.
- // Primeiro remove as chaves expiradas e depois devolve apenas as entradas ainda ativas.
-public HashEntry[] entries()
-{
-    HashEntry[] allEntries = data.entries();
-    HashEntry[] temporary = new HashEntry[allEntries.length];
-
-    int count = 0;
-
-    for (int i = 0; i < allEntries.length; i++)
+    // Primeiro remove as chaves expiradas e depois devolve apenas as entradas ainda ativas.
+    public HashEntry[] entries()
     {
-        HashEntry current = allEntries[i];
+        HashEntry[] allEntries = data.entries();
+        HashEntry[] temporary = new HashEntry[allEntries.length];
 
-        if (current != null && current.getValue() != null)
+        int count = 0;
+
+        for (int i = 0; i < allEntries.length; i++)
         {
-            if (current.getValue().isExpired())
+            HashEntry current = allEntries[i];
+
+            if (current != null && current.getValue() != null)
             {
-                data.remove(current.getKey());
-            }
-            else
-            {
-                temporary[count] = current;
-                count++;
+                if (current.getValue().isExpired())
+                {
+                    data.remove(current.getKey());
+                }
+                else
+                {
+                    temporary[count] = current;
+                    count++;
+                }
             }
         }
-    }
 
-    HashEntry[] result = new HashEntry[count];
+        HashEntry[] result = new HashEntry[count];
 
-    for (int i = 0; i < count; i++)
-    {
-        result[i] = temporary[i];
-    }
-
-    return result;
-}
-
-// Remove todas as chaves do banco.
-// Chama o clear da tabela hash para apagar todos os dados em memoria.
-public void flushAll()
-{
-    data.clear();
-}
-
-// Retorna todas as chaves ativas do banco.
-// Percorre as chaves da tabela, remove as expiradas e devolve apenas as chaves validas.
-public String[] keys()
-{
-    String[] allKeys = data.keys();
-    String[] temporary = new String[allKeys.length];
-
-    int count = 0;
-
-    for (int i = 0; i < allKeys.length; i++)
-    {
-        String key = allKeys[i];
-
-        if (key != null)
+        for (int i = 0; i < count; i++)
         {
-            removeIfExpired(key);
+            result[i] = temporary[i];
+        }
 
-            if (data.containsKey(key))
+        return result;
+    }
+
+    // Remove todas as chaves do banco.
+    // Chama o clear da tabela hash para apagar todos os dados em memoria.
+    public void flushAll()
+    {
+        data.clear();
+    }
+
+    // Retorna todas as chaves ativas do banco.
+    // Percorre as chaves da tabela, remove as expiradas e devolve apenas as chaves validas.
+    public String[] keys()
+    {
+        String[] allKeys = data.keys();
+        String[] temporary = new String[allKeys.length];
+
+        int count = 0;
+
+        for (int i = 0; i < allKeys.length; i++)
+        {
+            String key = allKeys[i];
+
+            if (key != null)
             {
-                temporary[count] = key;
-                count++;
+                removeIfExpired(key);
+
+                if (data.containsKey(key))
+                {
+                    temporary[count] = key;
+                    count++;
+                }
             }
         }
+
+        String[] result = new String[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            result[i] = temporary[i];
+        }
+
+        return result;
     }
-
-    String[] result = new String[count];
-
-    for (int i = 0; i < count; i++)
-    {
-        result[i] = temporary[i];
-    }
-
-    return result;
-}
 }

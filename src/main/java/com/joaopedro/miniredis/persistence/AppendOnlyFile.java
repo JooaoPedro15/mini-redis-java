@@ -174,7 +174,7 @@ public class AppendOnlyFile {
 
 
     // Reexecuta um comando FLUSHALL salvo no AOF.
-    // Remove todas as chaves do banco durante a reconstrução dos dados.
+    // Remove todas as chaves do banco durante a reconstrucao dos dados.
     private void replayFlushAll(String[] parts, MiniRedis redis) {
         if (parts.length == 1) {
             redis.flushAll();
