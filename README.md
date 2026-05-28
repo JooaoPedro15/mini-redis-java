@@ -72,6 +72,8 @@ src/main/java/com/joaopedro/miniredis
     ClientHandler.java
   client/
     MiniRedisClient.java
+  config/
+    ServerConfig.java
   persistence/
     AppendOnlyFile.java
   util/
@@ -123,6 +125,12 @@ Contem o cliente TCP do Mini Redis.
 Contem a persistencia AOF.
 
 `AppendOnlyFile` grava comandos em arquivo, recarrega o estado ao iniciar e reescreve o arquivo com `REWRITEAOF`.
+
+### `config`
+
+Contem a configuracao do servidor.
+
+`ServerConfig` e um objeto imutavel com `port`, `aofPath` e `maxClients`. Ele valida cada campo no construtor e oferece um parser `parse(String[] args)` que entende as flags `--port`, `--aof` e `--max-clients`. Argumentos invalidos viram `IllegalArgumentException` com mensagem explicativa, e `usage()` devolve o texto de ajuda usado pelo `Main` quando o parsing falha.
 
 ### `util`
 
@@ -247,7 +255,48 @@ Inicie o servidor:
 java -cp target\classes com.joaopedro.miniredis.Main
 ```
 
-O servidor inicia na porta `6379`.
+Sem argumentos, o servidor inicia com os valores padrao: porta `6379`, AOF em `data/appendonly.aof` e ate `10` clientes simultaneos.
+
+### Argumentos do servidor
+
+A classe `Main` aceita tres flags opcionais para customizar a execucao:
+
+| Flag | Tipo | Default | Descricao |
+| --- | --- | --- | --- |
+| `--port` | inteiro 1..65535 | `6379` | porta TCP em que o servidor escuta |
+| `--aof` | caminho | `data/appendonly.aof` | arquivo de persistencia AOF |
+| `--max-clients` | inteiro > 0 | `10` | tamanho do thread pool de clientes |
+
+Exemplos:
+
+```powershell
+# todos os valores customizados
+java -cp target\classes com.joaopedro.miniredis.Main --port 6380 --aof data/test.aof --max-clients 20
+
+# apenas a porta
+java -cp target\classes com.joaopedro.miniredis.Main --port 6380
+
+# apenas o thread pool
+java -cp target\classes com.joaopedro.miniredis.Main --max-clients 50
+```
+
+Conectar o cliente Java em uma porta customizada:
+
+```powershell
+java -cp target\classes com.joaopedro.miniredis.ClientMain 127.0.0.1 6380
+```
+
+Argumentos invalidos imprimem mensagem de erro + uso e o processo sai com exit code `2`. Exemplo:
+
+```text
+Error: --port requires an integer, got: abc
+
+Usage: java -cp target\classes com.joaopedro.miniredis.Main [options]
+Options:
+  --port <number>       TCP port (1-65535, default 6379)
+  --aof <path>          AOF file path (default data/appendonly.aof)
+  --max-clients <n>     Max concurrent clients (>0, default 10)
+```
 
 Se o Maven nao estiver disponivel no `PATH`, compile com `javac`:
 
@@ -441,7 +490,8 @@ O projeto tem testes para:
 - `AppendOnlyFile`;
 - `ClientHandler`;
 - `RedisServer`;
-- `Logger`.
+- `Logger`;
+- `ServerConfig`.
 
 Rodar todos:
 

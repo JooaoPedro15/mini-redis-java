@@ -1,5 +1,6 @@
 package com.joaopedro.miniredis.server;
 
+import com.joaopedro.miniredis.config.ServerConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -26,7 +27,7 @@ class RedisServerTest {
         int port = findFreePort();
         String aofPath = tempDir.resolve("appendonly.aof").toString();
 
-        RedisServer server = new RedisServer(port, aofPath);
+        RedisServer server = new RedisServer(new ServerConfig(port, aofPath, 10));
 
         Thread serverThread = new Thread(server::start, "test-server");
         serverThread.start();
@@ -61,7 +62,7 @@ class RedisServerTest {
         int port = findFreePort();
         String aofPath = tempDir.resolve("appendonly.aof").toString();
 
-        RedisServer server = new RedisServer(port, aofPath);
+        RedisServer server = new RedisServer(new ServerConfig(port, aofPath, 10));
 
         Thread serverThread = new Thread(server::start, "test-server-idempotent");
         serverThread.start();

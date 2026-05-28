@@ -1,6 +1,7 @@
 package com.joaopedro.miniredis.server;
 
 import com.joaopedro.miniredis.command.CommandProcessor;
+import com.joaopedro.miniredis.config.ServerConfig;
 import com.joaopedro.miniredis.core.MiniRedis;
 import com.joaopedro.miniredis.persistence.AppendOnlyFile;
 import com.joaopedro.miniredis.util.Logger;
@@ -14,13 +15,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class RedisServer {
-    private static final int MAX_CLIENTS = 10;
     private static final int SHUTDOWN_TIMEOUT_SECONDS = 5;
-    private static final String DEFAULT_AOF_PATH = "data/appendonly.aof";
 
     private static final Logger log = new Logger("RedisServer");
 
-    private int port;
+    private ServerConfig config;
     private MiniRedis redis;
     private CommandProcessor processor;
     private ExecutorService threadPool;
@@ -28,24 +27,18 @@ public class RedisServer {
     private ServerSocket serverSocket;
     private volatile boolean stopped;
 
-    // Cria o servidor TCP do Mini Redis usando o caminho padrao do AOF.
-    // Apenas delega para o construtor principal passando data/appendonly.aof.
-    public RedisServer(int port) {
-        this(port, DEFAULT_AOF_PATH);
-    }
-
-    // Cria o servidor TCP do Mini Redis com caminho de AOF configuravel.
-    // Recebe a porta e o caminho do AOF, cria o banco, carrega o AOF e monta o
-    // processador de comandos com um hook que dispara o stop em outra thread.
-    public RedisServer(int port, String aofPath) {
-        this.port = port;
+    // Cria o servidor TCP do Mini Redis a partir de uma configuracao validada.
+    // Inicializa o banco em memoria, carrega o AOF do caminho configurado e monta
+    // o processador de comandos com hook que dispara stop em outra thread.
+    public RedisServer(ServerConfig config) {
+        this.config = config;
         this.redis = new MiniRedis();
-        this.aof = new AppendOnlyFile(aofPath);
+        this.aof = new AppendOnlyFile(config.getAofPath());
 
         this.aof.load(redis);
 
         this.processor = new CommandProcessor(redis, aof, this::scheduleStop);
-        this.threadPool = Executors.newFixedThreadPool(MAX_CLIENTS);
+        this.threadPool = Executors.newFixedThreadPool(config.getMaxClients());
     }
 
     // Inicia o servidor TCP.
@@ -53,10 +46,11 @@ public class RedisServer {
     // chamado. Garante que o thread pool seja encerrado mesmo em caso de erro.
     public void start() {
         try {
-            serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket(config.getPort());
 
-            log.info("Server started on port " + port);
-            log.info("Max clients: " + MAX_CLIENTS);
+            log.info("Server started on port " + config.getPort());
+            log.info("AOF path: " + config.getAofPath());
+            log.info("Max clients: " + config.getMaxClients());
 
             acceptClients(serverSocket);
         } catch (IOException e) {
