@@ -4,29 +4,32 @@ import com.joaopedro.miniredis.core.MiniRedis;
 
 import java.util.Locale;
 
-// Benchmark simples e educacional do MiniRedis.
+// Simple educational benchmark for MiniRedis.
 //
-// IMPORTANTE: esta classe NAO substitui ferramentas como o JMH. O objetivo e
-// servir como uma medicao aproximada para comparar versoes do projeto entre
-// si e ter uma nocao de ordem de grandeza das operacoes basicas. Os numeros
-// dependem fortemente da maquina, JVM, carga do sistema e ate da temperatura
-// do processador.
+// IMPORTANT: this class is NOT a replacement for tools like JMH. The goal is
+// to provide a rough measurement that helps compare project versions among
+// themselves and to get an order-of-magnitude feel for the basic operations.
+// The numbers depend heavily on the machine, the JVM, the system load and
+// even the processor temperature.
 //
-// O benchmark mede o nucleo do banco em memoria, sem TCP, sem AOF e sem o
-// parser de comandos. O foco e a tabela hash manual e a logica de Entry.
-public class BenchmarkMain {
+// The benchmark exercises the in-memory core of the database, without TCP,
+// without AOF and without the command parser. The focus is the manual hash
+// table and the Entry logic.
+public class BenchmarkMain
+{
     private static final int DEFAULT_OPERATIONS = 100_000;
     private static final int WARMUP_OPERATIONS = 10_000;
 
-    // Sink usado para evitar que o JIT elimine chamadas sem efeito visivel.
-    // E volatile e impresso no final para garantir que os retornos das operacoes
-    // sejam considerados "usados" pelo otimizador.
+    // Sink used to prevent the JIT from eliminating calls without a visible effect.
+    // It is volatile and printed at the end so the return values of the operations
+    // are considered "used" by the optimizer.
     private static volatile long sink = 0;
 
-    // Ponto de entrada do benchmark.
-    // Resolve o numero de operacoes a partir dos argumentos, imprime o cabecalho,
-    // roda o warmup e executa os 4 cenarios em sequencia.
-    public static void main(String[] args) {
+    // Benchmark entry point.
+    // Resolves the number of operations from the arguments, prints the header,
+    // runs the warmup and executes the 4 scenarios in sequence.
+    public static void main(String[] args)
+    {
         int operations = resolveOperations(args);
 
         printHeader(operations);
@@ -40,22 +43,30 @@ public class BenchmarkMain {
         printFooter();
     }
 
-    // Le o numero de operacoes a partir dos argumentos de linha de comando.
-    // Usa o primeiro argumento se for um inteiro positivo, caso contrario aplica
-    // o default e avisa no terminal.
-    private static int resolveOperations(String[] args) {
+    // Reads the number of operations from the command-line arguments.
+    // Uses the first argument when it is a positive integer, otherwise falls
+    // back to the default and prints a warning.
+    private static int resolveOperations(String[] args)
+    {
         int result = DEFAULT_OPERATIONS;
 
-        if (args.length >= 1) {
-            try {
+        if (args.length >= 1)
+        {
+            try
+            {
                 int parsed = Integer.parseInt(args[0]);
 
-                if (parsed > 0) {
+                if (parsed > 0)
+                {
                     result = parsed;
-                } else {
+                }
+                else
+                {
                     System.out.println("Operations must be positive, using default " + DEFAULT_OPERATIONS);
                 }
-            } catch (NumberFormatException e) {
+            }
+            catch (NumberFormatException e)
+            {
                 System.out.println("Invalid number '" + args[0] + "', using default " + DEFAULT_OPERATIONS);
             }
         }
@@ -63,22 +74,26 @@ public class BenchmarkMain {
         return result;
     }
 
-    // Executa um warmup do JIT antes das medicoes reais.
-    // Faz SET seguido de GET em uma instancia descartavel para que o compilador
-    // JIT otimize os caminhos quentes antes dos cenarios medidos comecarem.
-    private static void warmup() {
+    // Runs a JIT warmup before the real measurements.
+    // Performs SET followed by GET on a throwaway instance so the JIT compiler
+    // optimizes the hot paths before the measured scenarios start.
+    private static void warmup()
+    {
         System.out.println("Warmup: " + WARMUP_OPERATIONS + " operations...");
 
         MiniRedis redis = new MiniRedis();
 
-        for (int i = 0; i < WARMUP_OPERATIONS; i++) {
+        for (int i = 0; i < WARMUP_OPERATIONS; i++)
+        {
             redis.set("warm" + i, "v");
         }
 
-        for (int i = 0; i < WARMUP_OPERATIONS; i++) {
+        for (int i = 0; i < WARMUP_OPERATIONS; i++)
+        {
             String value = redis.get("warm" + i);
 
-            if (value != null) {
+            if (value != null)
+            {
                 sink = sink + value.hashCode();
             }
         }
@@ -87,15 +102,18 @@ public class BenchmarkMain {
         System.out.println();
     }
 
-    // Mede o tempo de N operacoes SET em um banco vazio.
-    // Pre-gera as chaves para que a concatenacao de strings nao entre na medicao.
-    private static void runSetBenchmark(int operations) {
+    // Measures the time of N SET operations against an empty database.
+    // Pre-generates the keys so string concatenation does not pollute the
+    // measurement window.
+    private static void runSetBenchmark(int operations)
+    {
         MiniRedis redis = new MiniRedis();
         String[] keys = generateKeys(operations);
 
         long start = System.nanoTime();
 
-        for (int i = 0; i < operations; i++) {
+        for (int i = 0; i < operations; i++)
+        {
             String result = redis.set(keys[i], "value");
 
             sink = sink + result.hashCode();
@@ -106,23 +124,27 @@ public class BenchmarkMain {
         printResult("SET", operations, elapsed);
     }
 
-    // Mede o tempo de N operacoes GET em um banco previamente populado.
-    // Popula o banco fora da janela de medicao para que apenas o tempo do GET
-    // seja contabilizado.
-    private static void runGetBenchmark(int operations) {
+    // Measures the time of N GET operations against a pre-populated database.
+    // Populates the database outside the measurement window so only the GET time
+    // is counted.
+    private static void runGetBenchmark(int operations)
+    {
         MiniRedis redis = new MiniRedis();
         String[] keys = generateKeys(operations);
 
-        for (int i = 0; i < operations; i++) {
+        for (int i = 0; i < operations; i++)
+        {
             redis.set(keys[i], "value");
         }
 
         long start = System.nanoTime();
 
-        for (int i = 0; i < operations; i++) {
+        for (int i = 0; i < operations; i++)
+        {
             String value = redis.get(keys[i]);
 
-            if (value != null) {
+            if (value != null)
+            {
                 sink = sink + value.hashCode();
             }
         }
@@ -132,20 +154,23 @@ public class BenchmarkMain {
         printResult("GET", operations, elapsed);
     }
 
-    // Mede o tempo de N operacoes DEL em um banco previamente populado.
-    // Cada chave existe no inicio do loop, entao todas as remocoes acertam um
-    // valor real e seguem o caminho de remocao da tabela hash.
-    private static void runDelBenchmark(int operations) {
+    // Measures the time of N DEL operations against a pre-populated database.
+    // Every key exists at the start of the loop, so every removal hits a real
+    // value and follows the actual removal path of the hash table.
+    private static void runDelBenchmark(int operations)
+    {
         MiniRedis redis = new MiniRedis();
         String[] keys = generateKeys(operations);
 
-        for (int i = 0; i < operations; i++) {
+        for (int i = 0; i < operations; i++)
+        {
             redis.set(keys[i], "value");
         }
 
         long start = System.nanoTime();
 
-        for (int i = 0; i < operations; i++) {
+        for (int i = 0; i < operations; i++)
+        {
             int removed = redis.del(keys[i]);
 
             sink = sink + removed;
@@ -156,24 +181,30 @@ public class BenchmarkMain {
         printResult("DEL", operations, elapsed);
     }
 
-    // Mede o tempo de uma carga mista 50/50 de SET e GET.
-    // Indices pares fazem SET de uma nova chave, indices impares fazem GET da
-    // chave gravada na iteracao anterior, garantindo que metade dos GETs sao hits.
-    private static void runMixBenchmark(int operations) {
+    // Measures the time of a 50/50 mixed workload of SET and GET.
+    // Even indices SET a fresh key, odd indices GET the key written on the
+    // previous iteration, so half of the GETs are hits.
+    private static void runMixBenchmark(int operations)
+    {
         MiniRedis redis = new MiniRedis();
         String[] keys = generateKeys(operations);
 
         long start = System.nanoTime();
 
-        for (int i = 0; i < operations; i++) {
-            if (i % 2 == 0) {
+        for (int i = 0; i < operations; i++)
+        {
+            if (i % 2 == 0)
+            {
                 String result = redis.set(keys[i], "value");
 
                 sink = sink + result.hashCode();
-            } else {
+            }
+            else
+            {
                 String value = redis.get(keys[i - 1]);
 
-                if (value != null) {
+                if (value != null)
+                {
                     sink = sink + value.hashCode();
                 }
             }
@@ -184,24 +215,27 @@ public class BenchmarkMain {
         printResult("MIX 50/50 SET+GET", operations, elapsed);
     }
 
-    // Gera um array de chaves no formato "k<i>".
-    // Faz o trabalho de construcao de strings antes do benchmark para nao poluir
-    // a medicao com alocacao e concatenacao.
-    private static String[] generateKeys(int count) {
+    // Generates an array of keys with the format "k<i>".
+    // Performs the string-building work outside the benchmark window so
+    // allocation and concatenation do not pollute the measurement.
+    private static String[] generateKeys(int count)
+    {
         String[] keys = new String[count];
 
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++)
+        {
             keys[i] = "k" + i;
         }
 
         return keys;
     }
 
-    // Imprime o resultado de um cenario.
-    // Converte nanossegundos para milissegundos e calcula operacoes por segundo
-    // como ops divido pelo tempo em segundos. Forca Locale.ROOT no format para
-    // garantir ponto decimal independente do locale do sistema.
-    private static void printResult(String label, int operations, long elapsedNanos) {
+    // Prints the result of a scenario.
+    // Converts nanoseconds to milliseconds and computes operations per second
+    // as ops divided by elapsed seconds. Forces Locale.ROOT in the format call
+    // to guarantee a dot decimal separator regardless of the system locale.
+    private static void printResult(String label, int operations, long elapsedNanos)
+    {
         double millis = elapsedNanos / 1_000_000.0;
         double seconds = elapsedNanos / 1_000_000_000.0;
         double opsPerSecond = operations / seconds;
@@ -212,10 +246,11 @@ public class BenchmarkMain {
                 label, operations, millis, opsPerSecond));
     }
 
-    // Imprime o cabecalho do benchmark.
-    // Sempre exibe o aviso de que esta medicao nao substitui ferramentas como o
-    // JMH, reforcando que os numeros sao apenas aproximados.
-    private static void printHeader(int operations) {
+    // Prints the benchmark header.
+    // Always shows the warning that this measurement is not a replacement for
+    // tools like JMH, reinforcing that the numbers are only approximate.
+    private static void printHeader(int operations)
+    {
         System.out.println("========================================================");
         System.out.println("Mini Redis - Simple Benchmark");
         System.out.println("========================================================");
@@ -228,10 +263,11 @@ public class BenchmarkMain {
         System.out.println();
     }
 
-    // Imprime o rodape do benchmark.
-    // Tambem imprime o sink para garantir que o JIT nao remova o trabalho feito
-    // dentro dos loops por considera-lo sem efeito observavel.
-    private static void printFooter() {
+    // Prints the benchmark footer.
+    // Also prints the sink to make sure the JIT does not remove the work done
+    // inside the loops by treating it as having no observable effect.
+    private static void printFooter()
+    {
         System.out.println();
         System.out.println("========================================================");
         System.out.println("Done. sink=" + sink);

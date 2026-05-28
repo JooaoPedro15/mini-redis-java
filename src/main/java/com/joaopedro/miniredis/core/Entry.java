@@ -5,44 +5,44 @@ public class Entry
     private String value;
     private Long expiresAt;
 
-    // Cria uma entrada de valor do Mini Redis.
-    // Guarda a String recebida e inicia sem tempo de expiracao.
+    // Creates a Mini Redis value entry.
+    // Stores the received String and starts without an expiration timestamp.
     public Entry(String value)
     {
         this.value = value;
         this.expiresAt = null;
     }
 
-    // Retorna o valor armazenado na entrada.
-    // Esse metodo devolve apenas a String, sem alterar metadados de expiracao.
+    // Returns the value stored in the entry.
+    // This method returns only the String, without touching expiration metadata.
     public String getValue()
     {
         return value;
     }
 
-    // Atualiza o valor armazenado na entrada.
-    // Substitui somente a String e preserva o tempo de expiracao atual.
+    // Updates the value stored in the entry.
+    // Replaces only the String and preserves the current expiration timestamp.
     public void setValue(String value)
     {
         this.value = value;
     }
 
-    // Retorna o timestamp de expiracao da entrada.
-    // Devolve null quando a chave nao tem TTL configurado.
+    // Returns the expiration timestamp of the entry.
+    // Returns null when the key has no TTL configured.
     public Long getExpiresAt()
     {
         return expiresAt;
     }
 
-    // Define o timestamp de expiracao da entrada.
-    // Recebe um valor em milissegundos usado para calcular se a chave expirou.
+    // Sets the expiration timestamp of the entry.
+    // Receives a value in milliseconds used to check if the key has expired.
     public void setExpiresAt(Long expiresAt)
     {
         this.expiresAt = expiresAt;
     }
 
-    // Verifica se a entrada ja expirou.
-    // Compara o timestamp atual com expiresAt e retorna false quando nao ha expiracao.
+    // Checks whether the entry has already expired.
+    // Compares the current timestamp with expiresAt and returns false when no expiration is set.
     public boolean isExpired()
     {
         boolean result = false;

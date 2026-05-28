@@ -11,8 +11,9 @@ public class ClientMain
     private static final String DEFAULT_HOST = "localhost";
     private static final int DEFAULT_PORT = 6379;
 
-    // Inicia o cliente interativo do Mini Redis.
-    // Resolve host e porta a partir dos argumentos, conecta no servidor e entra no loop de leitura do terminal.
+    // Starts the interactive Mini Redis client.
+    // Resolves host and port from the arguments, connects to the server and
+    // enters the terminal read loop. Closes the connection on exit.
     public static void main(String[] args)
     {
         String host = resolveHost(args);
@@ -38,8 +39,9 @@ public class ClientMain
         }
     }
 
-    // Le o host a partir dos argumentos da linha de comando.
-    // Usa o primeiro argumento se existir, caso contrario retorna o host padrao localhost.
+    // Reads the host from the command-line arguments.
+    // Uses the first argument when provided, otherwise returns the default host
+    // "localhost".
     private static String resolveHost(String[] args)
     {
         String result = DEFAULT_HOST;
@@ -52,8 +54,9 @@ public class ClientMain
         return result;
     }
 
-    // Le a porta a partir dos argumentos da linha de comando.
-    // Usa o segundo argumento se existir e for um numero valido, caso contrario retorna a porta padrao 6379.
+    // Reads the port from the command-line arguments.
+    // Uses the second argument when it exists and is a valid number, otherwise
+    // returns the default port 6379.
     private static int resolvePort(String[] args)
     {
         int result = DEFAULT_PORT;
@@ -73,8 +76,8 @@ public class ClientMain
         return result;
     }
 
-    // Imprime informacoes iniciais para o usuario.
-    // Mostra o endereco conectado e as linhas de boas-vindas devolvidas pelo servidor.
+    // Prints the initial information for the user.
+    // Shows the connected address and the welcome lines returned by the server.
     private static void printWelcome(String host, int port, String[] welcome)
     {
         System.out.println("Connected to " + host + ":" + port);
@@ -88,8 +91,9 @@ public class ClientMain
         }
     }
 
-    // Le comandos do terminal e envia para o servidor em loop.
-    // Encerra quando o usuario digita QUIT, quando a entrada termina (EOF) ou quando ocorre um erro de IO.
+    // Reads commands from the terminal and forwards them to the server in a loop.
+    // Stops when the user types QUIT, when stdin reaches EOF or when an I/O
+    // error breaks the connection.
     private static void runLoop(MiniRedisClient client) throws IOException
     {
         BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));

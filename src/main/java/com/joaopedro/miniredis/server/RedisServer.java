@@ -14,7 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class RedisServer {
+public class RedisServer
+{
     private static final int SHUTDOWN_TIMEOUT_SECONDS = 5;
 
     private static final Logger log = new Logger("RedisServer");
@@ -27,10 +28,12 @@ public class RedisServer {
     private ServerSocket serverSocket;
     private volatile boolean stopped;
 
-    // Cria o servidor TCP do Mini Redis a partir de uma configuracao validada.
-    // Inicializa o banco em memoria, carrega o AOF do caminho configurado e monta
-    // o processador de comandos com hook que dispara stop em outra thread.
-    public RedisServer(ServerConfig config) {
+    // Creates the Mini Redis TCP server from a validated configuration.
+    // Boots the in-memory database, loads the AOF from the configured path and
+    // builds the command processor with a hook that schedules stop on another
+    // thread when SHUTDOWN arrives.
+    public RedisServer(ServerConfig config)
+    {
         this.config = config;
         this.redis = new MiniRedis();
         this.aof = new AppendOnlyFile(config.getAofPath());
@@ -41,11 +44,14 @@ public class RedisServer {
         this.threadPool = Executors.newFixedThreadPool(config.getMaxClients());
     }
 
-    // Inicia o servidor TCP.
-    // Abre o ServerSocket na porta configurada e aceita conexoes ate stop ser
-    // chamado. Garante que o thread pool seja encerrado mesmo em caso de erro.
-    public void start() {
-        try {
+    // Starts the TCP server.
+    // Opens the ServerSocket on the configured port and accepts connections until
+    // stop is called. Guarantees that the thread pool is shut down even when an
+    // error happens during accept.
+    public void start()
+    {
+        try
+        {
             serverSocket = new ServerSocket(config.getPort());
 
             log.info("Server started on port " + config.getPort());
@@ -53,22 +59,29 @@ public class RedisServer {
             log.info("Max clients: " + config.getMaxClients());
 
             acceptClients(serverSocket);
-        } catch (IOException e) {
-            if (!stopped) {
+        }
+        catch (IOException e)
+        {
+            if (!stopped)
+            {
                 log.error("Server error: " + e.getMessage());
             }
-        } finally {
+        }
+        finally
+        {
             shutdownThreadPool();
         }
     }
 
-    // Encerra o servidor de forma controlada.
-    // Marca o servidor como parado, fecha o ServerSocket para acordar o accept
-    // bloqueado e desliga o thread pool. E idempotente: chamadas adicionais sao
-    // ignoradas, o que permite usar este metodo como JVM shutdown hook e como
-    // gatilho do comando SHUTDOWN sem efeito colateral.
-    public void stop() {
-        if (stopped) {
+    // Shuts the server down gracefully.
+    // Marks the server as stopped, closes the ServerSocket to wake up the
+    // blocking accept call and drains the thread pool. The method is idempotent
+    // so it can safely be used both as a JVM shutdown hook and as the SHUTDOWN
+    // command trigger.
+    public void stop()
+    {
+        if (stopped)
+        {
             return;
         }
 
@@ -82,22 +95,26 @@ public class RedisServer {
         log.info("Server fully stopped");
     }
 
-    // Agenda o stop em uma thread separada.
-    // Usado como shutdown hook do CommandProcessor para que o cliente que enviou
-    // SHUTDOWN receba a resposta OK antes do socket ser fechado.
-    private void scheduleStop() {
+    // Schedules stop on a separate thread.
+    // Used as the CommandProcessor shutdown hook so that the client that sent
+    // SHUTDOWN receives the OK response before the socket is closed.
+    private void scheduleStop()
+    {
         Thread stopper = new Thread(this::stop, "mini-redis-shutdown");
         stopper.setDaemon(true);
         stopper.start();
     }
 
-    // Aceita clientes conectados ao servidor.
-    // Para cada cliente cria um ClientHandler e envia para o thread pool. Ignora
-    // SocketException quando o servidor ja esta parando, pois isso e esperado ao
-    // fechar o ServerSocket durante o shutdown.
-    private void acceptClients(ServerSocket serverSocket) throws IOException {
-        while (!stopped) {
-            try {
+    // Accepts clients connected to the server.
+    // Creates a ClientHandler for every accepted socket and dispatches it to the
+    // thread pool. Ignores SocketException when the server is already stopping
+    // because that is expected when the ServerSocket is closed during shutdown.
+    private void acceptClients(ServerSocket serverSocket) throws IOException
+    {
+        while (!stopped)
+        {
+            try
+            {
                 Socket clientSocket = serverSocket.accept();
 
                 log.info("Client connected: " + clientSocket.getInetAddress());
@@ -105,47 +122,62 @@ public class RedisServer {
                 ClientHandler handler = new ClientHandler(clientSocket, processor);
 
                 threadPool.execute(handler);
-            } catch (SocketException e) {
-                if (!stopped) {
+            }
+            catch (SocketException e)
+            {
+                if (!stopped)
+                {
                     throw e;
                 }
             }
         }
     }
 
-    // Fecha o ServerSocket do servidor.
-    // Trata IOException localmente para garantir que o fluxo de shutdown nao seja
-    // interrompido por falhas ao fechar o socket.
-    private void closeServerSocket() {
-        if (serverSocket != null) {
-            try {
+    // Closes the server's ServerSocket.
+    // Handles IOException locally to make sure that a failure while closing the
+    // socket does not break the shutdown flow.
+    private void closeServerSocket()
+    {
+        if (serverSocket != null)
+        {
+            try
+            {
                 serverSocket.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 log.warn("Error closing server socket: " + e.getMessage());
             }
         }
     }
 
-    // Encerra o pool de threads do servidor.
-    // Sinaliza shutdown, espera os clientes ativos terminarem ate o timeout
-    // configurado e, se algum nao terminar, forca a interrupcao com shutdownNow.
-    // O timeout protege contra clientes ociosos que nunca encerrariam sozinhos.
-    private void shutdownThreadPool() {
-        if (threadPool == null) {
+    // Shuts down the server thread pool.
+    // Signals shutdown, waits up to the configured timeout for the active client
+    // handlers to finish and falls back to shutdownNow if they do not terminate
+    // in time. The timeout protects against idle clients that would never finish.
+    private void shutdownThreadPool()
+    {
+        if (threadPool == null)
+        {
             return;
         }
 
-        if (threadPool.isShutdown()) {
+        if (threadPool.isShutdown())
+        {
             return;
         }
 
         threadPool.shutdown();
 
-        try {
-            if (!threadPool.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+        try
+        {
+            if (!threadPool.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+            {
                 threadPool.shutdownNow();
             }
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e)
+        {
             threadPool.shutdownNow();
             Thread.currentThread().interrupt();
         }

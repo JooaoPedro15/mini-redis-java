@@ -1,6 +1,7 @@
 package com.joaopedro.miniredis.config;
 
-public class ServerConfig {
+public class ServerConfig
+{
     public static final int DEFAULT_PORT = 6379;
     public static final String DEFAULT_AOF_PATH = "data/appendonly.aof";
     public static final int DEFAULT_MAX_CLIENTS = 10;
@@ -12,20 +13,24 @@ public class ServerConfig {
     private String aofPath;
     private int maxClients;
 
-    // Cria uma configuracao validada do servidor.
-    // Verifica cada campo no momento da construcao para que o objeto so exista
-    // em estado valido. Falhas viram IllegalArgumentException com mensagem clara.
-    public ServerConfig(int port, String aofPath, int maxClients) {
-        if (port < MIN_PORT || port > MAX_PORT) {
+    // Creates a validated server configuration.
+    // Each field is validated at construction time so the object only exists in
+    // a valid state. Failures become IllegalArgumentException with a clear message.
+    public ServerConfig(int port, String aofPath, int maxClients)
+    {
+        if (port < MIN_PORT || port > MAX_PORT)
+        {
             throw new IllegalArgumentException(
                     "port must be between " + MIN_PORT + " and " + MAX_PORT + ", got: " + port);
         }
 
-        if (aofPath == null || aofPath.trim().isEmpty()) {
+        if (aofPath == null || aofPath.trim().isEmpty())
+        {
             throw new IllegalArgumentException("aofPath must not be empty");
         }
 
-        if (maxClients < 1) {
+        if (maxClients < 1)
+        {
             throw new IllegalArgumentException("maxClients must be greater than 0, got: " + maxClients);
         }
 
@@ -34,51 +39,64 @@ public class ServerConfig {
         this.maxClients = maxClients;
     }
 
-    // Retorna a porta TCP em que o servidor deve escutar.
-    public int getPort() {
+    // Returns the TCP port the server should listen on.
+    public int getPort()
+    {
         return port;
     }
 
-    // Retorna o caminho do arquivo AOF usado para persistencia.
-    public String getAofPath() {
+    // Returns the path of the AOF file used for persistence.
+    public String getAofPath()
+    {
         return aofPath;
     }
 
-    // Retorna o numero maximo de clientes simultaneos atendidos pelo thread pool.
-    public int getMaxClients() {
+    // Returns the maximum number of concurrent clients served by the thread pool.
+    public int getMaxClients()
+    {
         return maxClients;
     }
 
-    // Constroi um ServerConfig com todos os valores padrao.
-    // Usado como atalho em testes e em chamadores que nao precisam customizar nada.
-    public static ServerConfig defaults() {
+    // Builds a ServerConfig using every default value.
+    // Convenient shortcut for tests and callers that do not need any customization.
+    public static ServerConfig defaults()
+    {
         return new ServerConfig(DEFAULT_PORT, DEFAULT_AOF_PATH, DEFAULT_MAX_CLIENTS);
     }
 
-    // Faz o parsing dos argumentos da linha de comando.
-    // Aceita as flags --port, --aof e --max-clients, cada uma seguida do valor.
-    // Qualquer argumento desconhecido, valor ausente ou valor invalido dispara
-    // IllegalArgumentException. Argumentos nao informados ficam com o default.
-    public static ServerConfig parse(String[] args) {
+    // Parses the command-line arguments.
+    // Accepts the flags --port, --aof and --max-clients, each followed by its
+    // value. Any unknown argument, missing value or invalid value throws an
+    // IllegalArgumentException. Flags that are not supplied keep their defaults.
+    public static ServerConfig parse(String[] args)
+    {
         int port = DEFAULT_PORT;
         String aofPath = DEFAULT_AOF_PATH;
         int maxClients = DEFAULT_MAX_CLIENTS;
 
         int i = 0;
 
-        while (i < args.length) {
+        while (i < args.length)
+        {
             String arg = args[i];
 
-            if (arg.equals("--port")) {
+            if (arg.equals("--port"))
+            {
                 port = readIntValue(args, i, "--port");
                 i = i + 2;
-            } else if (arg.equals("--aof")) {
+            }
+            else if (arg.equals("--aof"))
+            {
                 aofPath = readStringValue(args, i, "--aof");
                 i = i + 2;
-            } else if (arg.equals("--max-clients")) {
+            }
+            else if (arg.equals("--max-clients"))
+            {
                 maxClients = readIntValue(args, i, "--max-clients");
                 i = i + 2;
-            } else {
+            }
+            else
+            {
                 throw new IllegalArgumentException("Unknown argument: " + arg);
             }
         }
@@ -86,38 +104,46 @@ public class ServerConfig {
         return new ServerConfig(port, aofPath, maxClients);
     }
 
-    // Le o proximo argumento como inteiro.
-    // Verifica que existe um proximo argumento e que ele e numerico. Mensagens de
-    // erro mencionam o nome da flag para facilitar o diagnostico.
-    private static int readIntValue(String[] args, int index, String name) {
-        if (index + 1 >= args.length) {
+    // Reads the next argument as an integer.
+    // Verifies that a next argument exists and that it is numeric. Error messages
+    // include the flag name to make diagnostics easier.
+    private static int readIntValue(String[] args, int index, String name)
+    {
+        if (index + 1 >= args.length)
+        {
             throw new IllegalArgumentException(name + " requires a value");
         }
 
         String raw = args[index + 1];
 
-        try {
+        try
+        {
             return Integer.parseInt(raw);
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e)
+        {
             throw new IllegalArgumentException(name + " requires an integer, got: " + raw);
         }
     }
 
-    // Le o proximo argumento como string.
-    // Verifica apenas que existe um proximo argumento. A validacao de conteudo
-    // (por exemplo, string nao vazia) acontece no construtor.
-    private static String readStringValue(String[] args, int index, String name) {
-        if (index + 1 >= args.length) {
+    // Reads the next argument as a String.
+    // Only verifies that a next argument exists. The content validation (for
+    // example, non-empty String) is performed by the constructor.
+    private static String readStringValue(String[] args, int index, String name)
+    {
+        if (index + 1 >= args.length)
+        {
             throw new IllegalArgumentException(name + " requires a value");
         }
 
         return args[index + 1];
     }
 
-    // Devolve o texto de uso do servidor.
-    // Centraliza a documentacao das flags em um unico lugar para que o Main possa
-    // imprimir esse texto quando o parsing falhar.
-    public static String usage() {
+    // Returns the usage text of the server.
+    // Centralizes flag documentation in a single place so Main can print this
+    // text whenever parsing fails.
+    public static String usage()
+    {
         StringBuilder builder = new StringBuilder();
 
         builder.append("Usage: java -cp target\\classes com.joaopedro.miniredis.Main [options]").append(System.lineSeparator());

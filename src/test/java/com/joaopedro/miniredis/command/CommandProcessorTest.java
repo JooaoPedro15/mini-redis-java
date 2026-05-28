@@ -13,20 +13,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class CommandProcessorTest {
-
+class CommandProcessorTest
+{
     @TempDir
     Path tempDir;
 
     @Test
-    void pingReturnsPong() {
+    void pingReturnsPong()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("PONG", processor.process("PING"));
     }
 
     @Test
-    void setAndGetWorkThroughCommands() {
+    void setAndGetWorkThroughCommands()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("OK", processor.process("SET name John"));
@@ -34,7 +36,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void setKeepsValueWithSpaces() {
+    void setKeepsValueWithSpaces()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("OK", processor.process("SET nome joao pedro costa"));
@@ -42,7 +45,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void commandsAcceptExtraSpaces() {
+    void commandsAcceptExtraSpaces()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("OK", processor.process("   SET    name    John   "));
@@ -50,7 +54,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void allFinalCommandsWorkThroughProcessor() {
+    void allFinalCommandsWorkThroughProcessor()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("PONG", processor.process("PING"));
@@ -67,7 +72,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void missingArgumentsReturnUsageErrors() {
+    void missingArgumentsReturnUsageErrors()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("ERROR usage: SET key value", processor.process("SET"));
@@ -84,14 +90,16 @@ class CommandProcessorTest {
     }
 
     @Test
-    void unknownCommandReturnsError() {
+    void unknownCommandReturnsError()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("ERROR unknown command", processor.process("NOPE"));
     }
 
     @Test
-    void emptyCommandReturnsError() {
+    void emptyCommandReturnsError()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("ERROR empty command", processor.process(""));
@@ -100,7 +108,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void expireWithInvalidSecondsReturnsError() {
+    void expireWithInvalidSecondsReturnsError()
+    {
         CommandProcessor processor = newProcessor();
 
         processor.process("SET session active");
@@ -109,7 +118,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void mutatingCommandsKeepWritingToTemporaryAof() throws Exception {
+    void mutatingCommandsKeepWritingToTemporaryAof() throws Exception
+    {
         CommandProcessor processor = newProcessor();
         Path aofPath = tempDir.resolve("appendonly.aof");
 
@@ -127,7 +137,8 @@ class CommandProcessorTest {
     }
 
     @Test
-    void delExistsAndTtlWorkThroughCommands() {
+    void delExistsAndTtlWorkThroughCommands()
+    {
         CommandProcessor processor = newProcessor();
 
         processor.process("SET session active");
@@ -140,14 +151,16 @@ class CommandProcessorTest {
     }
 
     @Test
-    void shutdownWithoutHookReturnsError() {
+    void shutdownWithoutHookReturnsError()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("ERROR SHUTDOWN not available", processor.process("SHUTDOWN"));
     }
 
     @Test
-    void shutdownWithHookReturnsOkAndTriggersHook() {
+    void shutdownWithHookReturnsOkAndTriggersHook()
+    {
         AtomicBoolean triggered = new AtomicBoolean(false);
         Path aofPath = tempDir.resolve("appendonly.aof");
 
@@ -161,14 +174,16 @@ class CommandProcessorTest {
     }
 
     @Test
-    void shutdownWithExtraArgsReturnsUsageError() {
+    void shutdownWithExtraArgsReturnsUsageError()
+    {
         CommandProcessor processor = newProcessor();
 
         assertEquals("ERROR usage: SHUTDOWN", processor.process("SHUTDOWN extra"));
     }
 
     @Test
-    void keysFlushAllAndRewriteAofUseTemporaryFile() {
+    void keysFlushAllAndRewriteAofUseTemporaryFile()
+    {
         CommandProcessor processor = newProcessor();
         Path aofPath = tempDir.resolve("appendonly.aof");
 
@@ -182,13 +197,15 @@ class CommandProcessorTest {
         assertEquals("(empty)", processor.process("KEYS"));
     }
 
-    private CommandProcessor newProcessor() {
+    private CommandProcessor newProcessor()
+    {
         Path aofPath = tempDir.resolve("appendonly.aof");
 
         return new CommandProcessor(new MiniRedis(), new AppendOnlyFile(aofPath.toString()));
     }
 
-    private void assertContainsCommandKeys(String response, String first, String second) {
+    private void assertContainsCommandKeys(String response, String first, String second)
+    {
         String[] keys = response.split(" ");
 
         assertEquals(2, keys.length);
@@ -196,17 +213,21 @@ class CommandProcessorTest {
         assertContains(keys, second);
     }
 
-    private void assertContainsCommandKeys(String response, String expected) {
+    private void assertContainsCommandKeys(String response, String expected)
+    {
         String[] keys = response.split(" ");
 
         assertContains(keys, expected);
     }
 
-    private void assertContains(String[] values, String expected) {
+    private void assertContains(String[] values, String expected)
+    {
         boolean found = false;
 
-        for (int i = 0; i < values.length; i++) {
-            if (expected.equals(values[i])) {
+        for (int i = 0; i < values.length; i++)
+        {
+            if (expected.equals(values[i]))
+            {
                 found = true;
             }
         }
@@ -214,27 +235,35 @@ class CommandProcessorTest {
         assertTrue(found, "Expected response to contain " + expected);
     }
 
-    private boolean isPositiveNumber(String value) {
+    private boolean isPositiveNumber(String value)
+    {
         boolean result = false;
 
-        try {
+        try
+        {
             long number = Long.parseLong(value);
 
-            if (number > 0) {
+            if (number > 0)
+            {
                 result = true;
             }
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e)
+        {
             result = false;
         }
 
         return result;
     }
 
-    private boolean containsLineStartingWith(List<String> lines, String expectedStart) {
+    private boolean containsLineStartingWith(List<String> lines, String expectedStart)
+    {
         boolean result = false;
 
-        for (int i = 0; i < lines.size(); i++) {
-            if (lines.get(i).startsWith(expectedStart)) {
+        for (int i = 0; i < lines.size(); i++)
+        {
+            if (lines.get(i).startsWith(expectedStart))
+            {
                 result = true;
             }
         }

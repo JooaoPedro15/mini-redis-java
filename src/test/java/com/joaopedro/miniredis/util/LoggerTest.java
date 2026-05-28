@@ -9,15 +9,16 @@ import java.io.PrintStream;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class LoggerTest {
-
+class LoggerTest
+{
     private PrintStream originalOut;
     private PrintStream originalErr;
     private ByteArrayOutputStream capturedOut;
     private ByteArrayOutputStream capturedErr;
 
     @BeforeEach
-    void redirectStreams() {
+    void redirectStreams()
+    {
         originalOut = System.out;
         originalErr = System.err;
 
@@ -29,13 +30,15 @@ class LoggerTest {
     }
 
     @AfterEach
-    void restoreStreams() {
+    void restoreStreams()
+    {
         System.setOut(originalOut);
         System.setErr(originalErr);
     }
 
     @Test
-    void infoGoesToStdoutWithLevelAndComponent() {
+    void infoGoesToStdoutWithLevelAndComponent()
+    {
         Logger log = new Logger("TestComponent");
 
         log.info("server up");
@@ -49,7 +52,8 @@ class LoggerTest {
     }
 
     @Test
-    void warnGoesToStderr() {
+    void warnGoesToStderr()
+    {
         Logger log = new Logger("TestComponent");
 
         log.warn("slow disk");
@@ -62,7 +66,8 @@ class LoggerTest {
     }
 
     @Test
-    void errorGoesToStderr() {
+    void errorGoesToStderr()
+    {
         Logger log = new Logger("TestComponent");
 
         log.error("disk full");
@@ -75,14 +80,15 @@ class LoggerTest {
     }
 
     @Test
-    void outputContainsTimestamp() {
+    void outputContainsTimestamp()
+    {
         Logger log = new Logger("TestComponent");
 
         log.info("hello");
 
         String output = capturedOut.toString();
 
-        // Timestamp esperado no formato yyyy-MM-dd HH:mm:ss, com 4 digitos no ano.
+        // Timestamp expected at the start in the format yyyy-MM-dd HH:mm:ss.
         assertTrue(output.matches("(?s)\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\].*"),
                 "expected timestamp at start, got: " + output);
     }

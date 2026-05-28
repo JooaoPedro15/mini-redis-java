@@ -5,12 +5,12 @@ import com.joaopedro.miniredis.server.RedisServer;
 
 public class Main
 {
-    // Inicia o servidor TCP do Mini Redis.
-    // Faz o parsing dos argumentos para construir um ServerConfig, cria o
-    // RedisServer com essa configuracao, registra um JVM shutdown hook para
-    // encerrar de forma controlada em caso de Ctrl+C e chama start para aceitar
-    // conexoes. Em caso de argumentos invalidos, imprime mensagem + uso e
-    // encerra com exit code 2.
+    // Starts the Mini Redis TCP server.
+    // Parses the command-line arguments into a ServerConfig, creates the
+    // RedisServer with that configuration, registers a JVM shutdown hook so
+    // Ctrl+C also stops the server gracefully and calls start to accept
+    // connections. When the arguments are invalid, prints the error plus the
+    // usage text to stderr and exits with code 2.
     public static void main(String[] args)
     {
         ServerConfig config;

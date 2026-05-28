@@ -3,66 +3,99 @@ package com.joaopedro.miniredis.command;
 import com.joaopedro.miniredis.core.MiniRedis;
 import com.joaopedro.miniredis.persistence.AppendOnlyFile;
 
-public class CommandProcessor {
+public class CommandProcessor
+{
     private MiniRedis redis;
     private AppendOnlyFile aof;
     private Runnable shutdownHook;
 
-    // Cria o processador de comandos sem shutdown hook.
-    // Delega para o construtor principal passando null no lugar do hook, mantendo
-    // compatibilidade com chamadores que nao precisam do comando SHUTDOWN.
-    public CommandProcessor(MiniRedis redis, AppendOnlyFile aof) {
+    // Creates the command processor without a shutdown hook.
+    // Delegates to the main constructor passing null in place of the hook, keeping
+    // backwards compatibility with callers that do not need SHUTDOWN.
+    public CommandProcessor(MiniRedis redis, AppendOnlyFile aof)
+    {
         this(redis, aof, null);
     }
 
-    // Cria o processador de comandos com um shutdown hook opcional.
-    // Recebe MiniRedis, AOF e um Runnable que sera executado quando o comando
-    // SHUTDOWN chegar. O hook pode ser null para desabilitar o SHUTDOWN.
-    public CommandProcessor(MiniRedis redis, AppendOnlyFile aof, Runnable shutdownHook) {
+    // Creates the command processor with an optional shutdown hook.
+    // Receives MiniRedis, AOF and a Runnable that will be executed when the
+    // SHUTDOWN command arrives. The hook can be null to disable SHUTDOWN.
+    public CommandProcessor(MiniRedis redis, AppendOnlyFile aof, Runnable shutdownHook)
+    {
         this.redis = redis;
         this.aof = aof;
         this.shutdownHook = shutdownHook;
     }
 
-    // Processa uma linha de texto digitada pelo usuario.
-    // Normaliza a entrada, identifica o comando principal e chama a funcao
-    // correspondente.
-    public String process(String input) {
+    // Processes a raw line of text typed by the user.
+    // Normalizes the input, identifies the leading command and dispatches to the
+    // matching handler. Unknown or empty commands return an error message.
+    public String process(String input)
+    {
         String response;
 
-        if (input == null) {
+        if (input == null)
+        {
             response = "ERROR empty command";
-        } else {
+        }
+        else
+        {
             String[] parts = parseInput(input);
 
-            if (parts.length == 0) {
+            if (parts.length == 0)
+            {
                 response = "ERROR empty command";
-            } else {
+            }
+            else
+            {
                 String command = parts[0].toUpperCase();
 
-                if (command.equals("SET")) {
+                if (command.equals("SET"))
+                {
                     response = processSet(parts);
-                } else if (command.equals("GET")) {
+                }
+                else if (command.equals("GET"))
+                {
                     response = processGet(parts);
-                } else if (command.equals("DEL")) {
+                }
+                else if (command.equals("DEL"))
+                {
                     response = processDel(parts);
-                } else if (command.equals("EXISTS")) {
+                }
+                else if (command.equals("EXISTS"))
+                {
                     response = processExists(parts);
-                } else if (command.equals("EXPIRE")) {
+                }
+                else if (command.equals("EXPIRE"))
+                {
                     response = processExpire(parts);
-                } else if (command.equals("TTL")) {
+                }
+                else if (command.equals("TTL"))
+                {
                     response = processTtl(parts);
-                } else if (command.equals("PING")) {
+                }
+                else if (command.equals("PING"))
+                {
                     response = processPing(parts);
-                } else if (command.equals("KEYS")) {
+                }
+                else if (command.equals("KEYS"))
+                {
                     response = processKeys(parts);
-                } else if (command.equals("FLUSHALL")) {
+                }
+                else if (command.equals("FLUSHALL"))
+                {
                     response = processFlushAll(parts);
-                } else if (command.equals("REWRITEAOF")) {
+                }
+                else if (command.equals("REWRITEAOF"))
+                {
                     response = processRewriteAof(parts);
-                } else if (command.equals("SHUTDOWN")) {
+                }
+                else if (command.equals("SHUTDOWN"))
+                {
                     response = processShutdown(parts);
-                } else {
+                }
+                else
+                {
                     response = "ERROR unknown command";
                 }
             }
@@ -71,15 +104,19 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando SET.
-    // Verifica se o usuario enviou chave e valor, salva no MiniRedis e registra o
-    // comando no AOF.
-    private String processSet(String[] parts) {
+    // Handles the SET command.
+    // Checks that key and value were provided, stores the value in MiniRedis and
+    // appends the SET command to the AOF.
+    private String processSet(String[] parts)
+    {
         String response;
 
-        if (parts.length < 3) {
+        if (parts.length < 3)
+        {
             response = "ERROR usage: SET key value";
-        } else {
+        }
+        else
+        {
             response = redis.set(parts[1], parts[2]);
 
             aof.append("SET " + parts[1] + " " + parts[2]);
@@ -88,20 +125,27 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando GET.
-    // Verifica se o usuario enviou uma chave e busca o valor correspondente no
-    // MiniRedis.
-    private String processGet(String[] parts) {
+    // Handles the GET command.
+    // Checks that a single key was provided and fetches the value from MiniRedis.
+    // Missing keys return the conventional "(nil)" response.
+    private String processGet(String[] parts)
+    {
         String response;
 
-        if (parts.length != 2) {
+        if (parts.length != 2)
+        {
             response = "ERROR usage: GET key";
-        } else {
+        }
+        else
+        {
             String value = redis.get(parts[1]);
 
-            if (value == null) {
+            if (value == null)
+            {
                 response = "(nil)";
-            } else {
+            }
+            else
+            {
                 response = value;
             }
         }
@@ -109,20 +153,25 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando DEL.
-    // Remove a chave do MiniRedis e registra no AOF apenas se alguma chave foi
-    // removida.
-    private String processDel(String[] parts) {
+    // Handles the DEL command.
+    // Removes the key from MiniRedis and only appends to the AOF when an actual
+    // key was deleted, avoiding noise for no-op deletes.
+    private String processDel(String[] parts)
+    {
         String response;
 
-        if (parts.length != 2) {
+        if (parts.length != 2)
+        {
             response = "ERROR usage: DEL key";
-        } else {
+        }
+        else
+        {
             int result = redis.del(parts[1]);
 
             response = String.valueOf(result);
 
-            if (result == 1) {
+            if (result == 1)
+            {
                 aof.append("DEL " + parts[1]);
             }
         }
@@ -130,31 +179,40 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando EXISTS.
-    // Verifica se o usuario enviou uma chave e retorna 1 se ela existir ou 0 se nao
-    // existir.
-    private String processExists(String[] parts) {
+    // Handles the EXISTS command.
+    // Checks that a single key was provided and returns 1 if the key exists or
+    // 0 otherwise.
+    private String processExists(String[] parts)
+    {
         String response;
 
-        if (parts.length != 2) {
+        if (parts.length != 2)
+        {
             response = "ERROR usage: EXISTS key";
-        } else {
+        }
+        else
+        {
             response = String.valueOf(redis.exists(parts[1]));
         }
 
         return response;
     }
 
-    // Processa o comando EXPIRE.
-    // Converte os segundos para timestamp absoluto, define a expiracao e salva
-    // EXPIREAT no AOF.
-    private String processExpire(String[] parts) {
+    // Handles the EXPIRE command.
+    // Converts the seconds argument into an absolute timestamp, sets the
+    // expiration on the key and persists the change as an EXPIREAT line in the AOF.
+    private String processExpire(String[] parts)
+    {
         String response;
 
-        if (parts.length != 3) {
+        if (parts.length != 3)
+        {
             response = "ERROR usage: EXPIRE key seconds";
-        } else {
-            try {
+        }
+        else
+        {
+            try
+            {
                 long seconds = Long.parseLong(parts[2]);
                 long expiresAt = System.currentTimeMillis() + seconds * 1000;
 
@@ -162,10 +220,13 @@ public class CommandProcessor {
 
                 response = String.valueOf(result);
 
-                if (result == 1) {
+                if (result == 1)
+                {
                     aof.append("EXPIREAT " + parts[1] + " " + expiresAt);
                 }
-            } catch (NumberFormatException e) {
+            }
+            catch (NumberFormatException e)
+            {
                 response = "ERROR seconds must be a number";
             }
         }
@@ -173,32 +234,42 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando TTL.
-    // Verifica se o usuario enviou uma chave e retorna o tempo restante de vida
-    // dessa chave.
-    private String processTtl(String[] parts) {
+    // Handles the TTL command.
+    // Checks that a single key was provided and returns the remaining time-to-live
+    // of that key.
+    private String processTtl(String[] parts)
+    {
         String response;
 
-        if (parts.length != 2) {
+        if (parts.length != 2)
+        {
             response = "ERROR usage: TTL key";
-        } else {
+        }
+        else
+        {
             response = String.valueOf(redis.ttl(parts[1]));
         }
 
         return response;
     }
 
-    // Processa o comando SHUTDOWN.
-    // Dispara o shutdown hook configurado e responde OK. Se nao houver hook, retorna
-    // erro indicando que o comando nao esta disponivel neste contexto.
-    private String processShutdown(String[] parts) {
+    // Handles the SHUTDOWN command.
+    // Fires the configured shutdown hook and responds OK. When no hook is
+    // configured, returns an error indicating that the command is unavailable.
+    private String processShutdown(String[] parts)
+    {
         String response;
 
-        if (parts.length != 1) {
+        if (parts.length != 1)
+        {
             response = "ERROR usage: SHUTDOWN";
-        } else if (shutdownHook == null) {
+        }
+        else if (shutdownHook == null)
+        {
             response = "ERROR SHUTDOWN not available";
-        } else {
+        }
+        else
+        {
             shutdownHook.run();
             response = "OK";
         }
@@ -206,14 +277,18 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando REWRITEAOF.
-    // Reescreve o arquivo AOF mantendo apenas o estado atual do banco.
-    private String processRewriteAof(String[] parts) {
+    // Handles the REWRITEAOF command.
+    // Rewrites the AOF file keeping only the current state of the database.
+    private String processRewriteAof(String[] parts)
+    {
         String response;
 
-        if (parts.length != 1) {
+        if (parts.length != 1)
+        {
             response = "ERROR usage: REWRITEAOF";
-        } else {
+        }
+        else
+        {
             aof.rewrite(redis);
             response = "OK";
         }
@@ -221,35 +296,46 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando PING.
-    // Verifica se o comando veio sem argumentos e retorna PONG para indicar que o
-    // servidor esta respondendo.
-    private String processPing(String[] parts) {
+    // Handles the PING command.
+    // Checks that no arguments were sent and returns PONG to confirm the server
+    // is responsive.
+    private String processPing(String[] parts)
+    {
         String response;
 
-        if (parts.length != 1) {
+        if (parts.length != 1)
+        {
             response = "ERROR usage: PING";
-        } else {
+        }
+        else
+        {
             response = "PONG";
         }
 
         return response;
     }
 
-    // Processa o comando KEYS.
-    // Retorna todas as chaves ativas do banco em uma unica linha separada por
-    // espaco.
-    private String processKeys(String[] parts) {
+    // Handles the KEYS command.
+    // Returns every active key in the database as a single line separated by
+    // spaces, or "(empty)" when no key is present.
+    private String processKeys(String[] parts)
+    {
         String response;
 
-        if (parts.length != 1) {
+        if (parts.length != 1)
+        {
             response = "ERROR usage: KEYS";
-        } else {
+        }
+        else
+        {
             String[] keys = redis.keys();
 
-            if (keys.length == 0) {
+            if (keys.length == 0)
+            {
                 response = "(empty)";
-            } else {
+            }
+            else
+            {
                 response = joinKeys(keys);
             }
         }
@@ -257,14 +343,18 @@ public class CommandProcessor {
         return response;
     }
 
-    // Processa o comando FLUSHALL.
-    // Remove todas as chaves do banco e registra o comando no AOF.
-    private String processFlushAll(String[] parts) {
+    // Handles the FLUSHALL command.
+    // Removes every key from the database and persists the FLUSHALL line in the AOF.
+    private String processFlushAll(String[] parts)
+    {
         String response;
 
-        if (parts.length != 1) {
+        if (parts.length != 1)
+        {
             response = "ERROR usage: FLUSHALL";
-        } else {
+        }
+        else
+        {
             redis.flushAll();
             aof.append("FLUSHALL");
 
@@ -274,15 +364,20 @@ public class CommandProcessor {
         return response;
     }
 
-    // Junta as chaves em uma unica String.
-    // Percorre o array manualmente e separa as chaves por espaco.
-    private String joinKeys(String[] keys) {
+    // Joins the keys into a single String.
+    // Walks the array manually and separates the keys with a single space.
+    private String joinKeys(String[] keys)
+    {
         String result = "";
 
-        for (int i = 0; i < keys.length; i++) {
-            if (i == 0) {
+        for (int i = 0; i < keys.length; i++)
+        {
+            if (i == 0)
+            {
                 result = keys[i];
-            } else {
+            }
+            else
+            {
                 result = result + " " + keys[i];
             }
         }
@@ -290,45 +385,56 @@ public class CommandProcessor {
         return result;
     }
 
-    // Quebra uma linha de comando em partes principais.
-    // Remove espacos extras no inicio, no fim e entre comando/chave, preservando o
-    // valor do SET.
-    private String[] parseInput(String input) {
+    // Breaks a command line into its main parts.
+    // Trims surrounding whitespace and collapses repeated spaces between command
+    // and key, while preserving the SET value as a single segment.
+    private String[] parseInput(String input)
+    {
         String normalized = normalizeSpaces(input);
 
         String[] result;
 
-        if (normalized.length() == 0) {
+        if (normalized.length() == 0)
+        {
             result = new String[0];
-        } else {
+        }
+        else
+        {
             result = normalized.split(" ", 3);
         }
 
         return result;
     }
 
-    // Normaliza os espacos de uma linha de comando.
-    // Remove espacos extras no inicio/fim e transforma multiplos espacos em apenas
-    // um.
-    private String normalizeSpaces(String input) {
+    // Normalizes the whitespace of a command line.
+    // Removes leading and trailing spaces and reduces multiple consecutive spaces
+    // into a single one.
+    private String normalizeSpaces(String input)
+    {
         String result = "";
         boolean lastWasSpace = true;
 
-        for (int i = 0; i < input.length(); i++) {
+        for (int i = 0; i < input.length(); i++)
+        {
             char current = input.charAt(i);
 
-            if (current == ' ') {
-                if (!lastWasSpace) {
+            if (current == ' ')
+            {
+                if (!lastWasSpace)
+                {
                     result = result + current;
                     lastWasSpace = true;
                 }
-            } else {
+            }
+            else
+            {
                 result = result + current;
                 lastWasSpace = false;
             }
         }
 
-        if (result.length() > 0 && result.charAt(result.length() - 1) == ' ') {
+        if (result.length() > 0 && result.charAt(result.length() - 1) == ' ')
+        {
             result = result.substring(0, result.length() - 1);
         }
 

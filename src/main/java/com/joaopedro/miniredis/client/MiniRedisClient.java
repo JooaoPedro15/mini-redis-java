@@ -14,17 +14,17 @@ public class MiniRedisClient
     private BufferedReader reader;
     private PrintWriter writer;
 
-    // Cria um cliente TCP do Mini Redis.
-    // Apenas guarda host e porta. A conexao so e aberta quando connect e chamado.
+    // Creates a Mini Redis TCP client.
+    // Stores host and port only. The actual connection is opened by connect.
     public MiniRedisClient(String host, int port)
     {
         this.host = host;
         this.port = port;
     }
 
-    // Abre a conexao TCP com o servidor.
-    // Cria o socket, prepara reader e writer e le as linhas de boas-vindas enviadas pelo servidor.
-    // Retorna as linhas de boas-vindas para que o chamador possa exibi-las.
+    // Opens the TCP connection to the server.
+    // Creates the socket, sets up reader and writer, and reads the welcome lines
+    // sent by the server. Returns the welcome lines so the caller can display them.
     public String[] connect() throws IOException
     {
         this.socket = new Socket(host, port);
@@ -37,8 +37,9 @@ public class MiniRedisClient
         return new String[] { firstLine, secondLine };
     }
 
-    // Envia um comando para o servidor e devolve a resposta.
-    // Escreve a linha no socket e le exatamente uma linha de resposta, pois o protocolo do servidor responde sempre em uma unica linha.
+    // Sends a command to the server and returns the response.
+    // Writes the line on the socket and reads exactly one response line, since
+    // the server protocol always answers in a single line.
     public String sendCommand(String command) throws IOException
     {
         writer.println(command);
@@ -46,8 +47,8 @@ public class MiniRedisClient
         return reader.readLine();
     }
 
-    // Verifica se a linha digitada pelo usuario corresponde ao comando QUIT.
-    // Ignora espacos no inicio/fim e diferenca entre maiusculas e minusculas.
+    // Checks whether the line typed by the user is the QUIT command.
+    // Ignores surrounding whitespace and case differences.
     public boolean isQuitCommand(String line)
     {
         boolean result = false;
@@ -60,8 +61,9 @@ public class MiniRedisClient
         return result;
     }
 
-    // Fecha a conexao com o servidor.
-    // Usa try/catch para garantir que um erro ao fechar nao quebre a aplicacao chamadora.
+    // Closes the connection with the server.
+    // Wraps the close call in try/catch so a failure while closing does not
+    // break the calling application.
     public void close()
     {
         try

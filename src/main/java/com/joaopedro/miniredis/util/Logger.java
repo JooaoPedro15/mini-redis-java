@@ -1,47 +1,54 @@
 package com.joaopedro.miniredis.util;
 
+import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class Logger {
+public class Logger
+{
     private static final DateTimeFormatter TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private String component;
 
-    // Cria um logger associado a um componente.
-    // O nome do componente aparece em cada linha de log para facilitar identificar
-    // a origem das mensagens em saidas de varios modulos.
-    public Logger(String component) {
+    // Creates a logger bound to a component name.
+    // The component name appears in every log line to make it easier to identify
+    // the source of a message when multiple modules are logging.
+    public Logger(String component)
+    {
         this.component = component;
     }
 
-    // Registra uma mensagem de nivel INFO.
-    // Usa stdout porque INFO representa eventos normais do servidor e nao precisa
-    // ser separado para alertas.
-    public void info(String message) {
+    // Logs an INFO message.
+    // Writes to stdout because INFO represents normal server events and does not
+    // need to be separated from regular output.
+    public void info(String message)
+    {
         log("INFO ", message, System.out);
     }
 
-    // Registra uma mensagem de nivel WARN.
-    // Usa stderr para que alertas possam ser filtrados ou redirecionados de forma
-    // independente da saida normal.
-    public void warn(String message) {
+    // Logs a WARN message.
+    // Writes to stderr so warnings can be filtered or redirected independently
+    // from normal output.
+    public void warn(String message)
+    {
         log("WARN ", message, System.err);
     }
 
-    // Registra uma mensagem de nivel ERROR.
-    // Usa stderr porque indica falha. Mantem o mesmo formato dos outros niveis para
-    // uniformidade do log.
-    public void error(String message) {
+    // Logs an ERROR message.
+    // Writes to stderr because it indicates a failure. Keeps the same format as
+    // the other levels for consistency.
+    public void error(String message)
+    {
         log("ERROR", message, System.err);
     }
 
-    // Formata e imprime uma linha de log.
-    // Monta a string com timestamp, nivel, componente e mensagem e envia para o
-    // PrintStream recebido. PrintStream.println e sincronizado internamente, entao
-    // chamadas concorrentes nao intercalam dentro de uma linha.
-    private void log(String level, String message, java.io.PrintStream out) {
+    // Formats and prints a single log line.
+    // Builds the line with timestamp, level, component and message and sends it
+    // to the given PrintStream. PrintStream.println is internally synchronized,
+    // so concurrent callers do not interleave inside a single line.
+    private void log(String level, String message, PrintStream out)
+    {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
 
         out.println("[" + timestamp + "] [" + level + "] [" + component + "] " + message);

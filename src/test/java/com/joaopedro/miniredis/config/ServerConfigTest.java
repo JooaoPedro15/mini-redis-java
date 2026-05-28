@@ -6,10 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ServerConfigTest {
-
+class ServerConfigTest
+{
     @Test
-    void parseWithoutArgsReturnsDefaults() {
+    void parseWithoutArgsReturnsDefaults()
+    {
         ServerConfig config = ServerConfig.parse(new String[] {});
 
         assertEquals(ServerConfig.DEFAULT_PORT, config.getPort());
@@ -18,7 +19,8 @@ class ServerConfigTest {
     }
 
     @Test
-    void defaultsFactoryReturnsSameAsParseWithoutArgs() {
+    void defaultsFactoryReturnsSameAsParseWithoutArgs()
+    {
         ServerConfig fromFactory = ServerConfig.defaults();
         ServerConfig fromParse = ServerConfig.parse(new String[] {});
 
@@ -28,7 +30,8 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseAcceptsAllThreeFlags() {
+    void parseAcceptsAllThreeFlags()
+    {
         ServerConfig config = ServerConfig.parse(new String[] {
                 "--port", "6380",
                 "--aof", "data/test.aof",
@@ -41,7 +44,8 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseAcceptsSubsetOfFlags() {
+    void parseAcceptsSubsetOfFlags()
+    {
         ServerConfig config = ServerConfig.parse(new String[] { "--port", "9999" });
 
         assertEquals(9999, config.getPort());
@@ -50,7 +54,8 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseFlagsCanAppearInAnyOrder() {
+    void parseFlagsCanAppearInAnyOrder()
+    {
         ServerConfig config = ServerConfig.parse(new String[] {
                 "--max-clients", "5",
                 "--aof", "x.aof",
@@ -63,7 +68,8 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseRejectsUnknownArgument() {
+    void parseRejectsUnknownArgument()
+    {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> ServerConfig.parse(new String[] { "--nope", "value" }));
 
@@ -71,7 +77,8 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseRejectsMissingValueForPort() {
+    void parseRejectsMissingValueForPort()
+    {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> ServerConfig.parse(new String[] { "--port" }));
 
@@ -79,19 +86,22 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseRejectsMissingValueForAof() {
+    void parseRejectsMissingValueForAof()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> ServerConfig.parse(new String[] { "--aof" }));
     }
 
     @Test
-    void parseRejectsMissingValueForMaxClients() {
+    void parseRejectsMissingValueForMaxClients()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> ServerConfig.parse(new String[] { "--max-clients" }));
     }
 
     @Test
-    void parseRejectsNonNumericPort() {
+    void parseRejectsNonNumericPort()
+    {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> ServerConfig.parse(new String[] { "--port", "abc" }));
 
@@ -99,61 +109,71 @@ class ServerConfigTest {
     }
 
     @Test
-    void parseRejectsNonNumericMaxClients() {
+    void parseRejectsNonNumericMaxClients()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> ServerConfig.parse(new String[] { "--max-clients", "ten" }));
     }
 
     @Test
-    void constructorRejectsPortBelowMin() {
+    void constructorRejectsPortBelowMin()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(0, "data/x.aof", 10));
     }
 
     @Test
-    void constructorRejectsPortAboveMax() {
+    void constructorRejectsPortAboveMax()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(70000, "data/x.aof", 10));
     }
 
     @Test
-    void constructorRejectsNegativePort() {
+    void constructorRejectsNegativePort()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(-1, "data/x.aof", 10));
     }
 
     @Test
-    void constructorRejectsEmptyAofPath() {
+    void constructorRejectsEmptyAofPath()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(6379, "", 10));
     }
 
     @Test
-    void constructorRejectsBlankAofPath() {
+    void constructorRejectsBlankAofPath()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(6379, "   ", 10));
     }
 
     @Test
-    void constructorRejectsNullAofPath() {
+    void constructorRejectsNullAofPath()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(6379, null, 10));
     }
 
     @Test
-    void constructorRejectsZeroMaxClients() {
+    void constructorRejectsZeroMaxClients()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(6379, "data/x.aof", 0));
     }
 
     @Test
-    void constructorRejectsNegativeMaxClients() {
+    void constructorRejectsNegativeMaxClients()
+    {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServerConfig(6379, "data/x.aof", -5));
     }
 
     @Test
-    void usageMentionsAllThreeFlags() {
+    void usageMentionsAllThreeFlags()
+    {
         String usage = ServerConfig.usage();
 
         assertTrue(usage.contains("--port"), "usage should mention --port");

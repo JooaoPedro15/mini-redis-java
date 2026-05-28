@@ -16,17 +16,18 @@ public class ClientHandler implements Runnable
     private Socket clientSocket;
     private CommandProcessor processor;
 
-    // Cria o manipulador de um cliente TCP.
-    // Guarda o socket do cliente e o processador que executa os comandos recebidos.
+    // Creates the handler for a single TCP client.
+    // Stores the client socket and the shared command processor used to execute
+    // every command received from this client.
     public ClientHandler(Socket clientSocket, CommandProcessor processor)
     {
         this.clientSocket = clientSocket;
         this.processor = processor;
     }
 
-    // Executa o atendimento do cliente em uma thread separada.
-    // Chama o metodo que le comandos, registra a desconexao ao final e garante que
-    // o socket sera fechado mesmo em caso de erro.
+    // Runs the client session on its own thread.
+    // Delegates to handleClient, logs the disconnection in the finally block and
+    // guarantees that the socket is closed even when an exception is raised.
     @Override
     public void run()
     {
@@ -47,8 +48,10 @@ public class ClientHandler implements Runnable
         }
     }
 
-    // Le comandos enviados pelo cliente e devolve respostas.
-    // Para cada linha recebida, processa o comando usando CommandProcessor e envia o resultado.
+    // Reads commands from the client and writes back responses.
+    // For every line received, runs it through the CommandProcessor and writes
+    // the result on the same socket. Stops the loop when QUIT is received or the
+    // remote end closes the connection.
     private void handleClient() throws IOException
     {
         BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -71,8 +74,9 @@ public class ClientHandler implements Runnable
         writer.println("Bye");
     }
 
-    // Verifica se a linha recebida e o comando QUIT.
-    // Remove espacos extras no inicio e no fim antes de comparar, para permitir encerrar a conexao mesmo com espacos.
+    // Checks whether a received line is the QUIT command.
+    // Trims leading and trailing whitespace before comparing so QUIT can end the
+    // session even when surrounded by extra spaces.
     private boolean isQuitCommand(String line)
     {
         boolean result = false;
@@ -85,8 +89,9 @@ public class ClientHandler implements Runnable
         return result;
     }
 
-    // Fecha a conexao com o cliente.
-    // Usa try/catch para evitar que um erro ao fechar o socket derrube o servidor.
+    // Closes the client connection.
+    // Wraps the close call in try/catch so a failure while closing the socket
+    // does not crash the server.
     private void closeClientSocket()
     {
         try

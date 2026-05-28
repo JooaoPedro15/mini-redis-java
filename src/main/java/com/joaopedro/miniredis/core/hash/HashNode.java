@@ -8,8 +8,8 @@ public class HashNode
     private Entry value;
     private HashNode next;
 
-    // Cria um no da lista ligada de um bucket.
-    // Guarda a chave, a Entry associada e inicia sem proximo no.
+    // Creates a node of a bucket's linked list.
+    // Stores the key, the associated Entry and starts with no next node.
     public HashNode(String key, Entry value)
     {
         this.key = key;
@@ -17,36 +17,36 @@ public class HashNode
         this.next = null;
     }
 
-    // Retorna a chave armazenada neste no.
-    // Essa chave e usada para comparar entradas durante buscas e remocoes.
+    // Returns the key stored in this node.
+    // Used to compare entries during lookups and removals.
     public String getKey()
     {
         return key;
     }
 
-    // Retorna a Entry armazenada neste no.
-    // A Entry contem o valor real e os metadados de expiracao.
+    // Returns the Entry stored in this node.
+    // The Entry holds the actual value and the expiration metadata.
     public Entry getValue()
     {
         return value;
     }
 
-    // Atualiza a Entry armazenada neste no.
-    // Esse metodo e usado quando um put recebe uma chave que ja existe.
+    // Updates the Entry stored in this node.
+    // Used when a put receives a key that already exists.
     public void setValue(Entry value)
     {
         this.value = value;
     }
 
-    // Retorna o proximo no da lista ligada.
-    // Permite percorrer colisoes dentro do mesmo bucket.
+    // Returns the next node in the linked list.
+    // Allows walking through collisions inside the same bucket.
     public HashNode getNext()
     {
         return next;
     }
 
-    // Define o proximo no da lista ligada.
-    // Esse metodo conecta ou desconecta nos durante insercao, remocao e rehashing.
+    // Sets the next node in the linked list.
+    // Used to connect or disconnect nodes during insertion, removal and rehashing.
     public void setNext(HashNode next)
     {
         this.next = next;

@@ -1,25 +1,25 @@
 # mini-redis-java
 
-Um Mini Redis educacional feito em Java, com tabela hash manual, TTL, servidor TCP, multiplos clientes e persistencia AOF.
+An educational Mini Redis written in Java — manual hash table, TTL, TCP server, multiple clients and AOF persistence.
 
-Este projeto nao tenta ser uma copia completa do Redis. A ideia e estudar, com codigo proprio, como algumas pecas de um banco chave-valor em memoria funcionam por dentro.
+This project is not a full Redis clone. The goal is to study, with hand-written code, how some pieces of an in-memory key/value store work on the inside.
 
-## Objetivo do projeto
+## Project goal
 
-O objetivo principal e praticar conceitos de estruturas de dados, servidor TCP, concorrencia, cache e persistencia.
+The main goal is to practice data structures, TCP networking, concurrency, caching and persistence.
 
-Na pratica, o projeto junta alguns temas importantes:
+In practice the project ties together several topics:
 
-- implementacao manual de tabela hash;
-- tratamento de colisao com lista ligada;
-- comandos inspirados no Redis;
-- expiracao de chaves com TTL;
-- servidor TCP com multiplos clientes;
-- persistencia em arquivo append-only.
+- manual hash table implementation;
+- collision handling with linked lists;
+- Redis-inspired commands;
+- key expiration via TTL;
+- TCP server serving multiple clients;
+- append-only file persistence.
 
-## Funcionalidades
+## Features
 
-Comandos suportados:
+Supported commands:
 
 ```text
 PING
@@ -36,22 +36,22 @@ SHUTDOWN
 QUIT
 ```
 
-Recursos implementados:
+Implemented capabilities:
 
-- servidor TCP na porta `6379`;
-- multiplos clientes usando thread pool;
-- shutdown gracioso via comando `SHUTDOWN` ou `Ctrl+C`;
-- persistencia AOF em `data/appendonly.aof`;
-- compactacao do AOF com `REWRITEAOF`;
-- tabela hash manual;
-- colisao por lista ligada;
-- resize e rehashing quando a tabela cresce;
-- TTL com expiracao preguicosa;
-- testes unitarios com JUnit Jupiter.
+- TCP server on port `6379` (configurable);
+- multiple clients served by a thread pool;
+- graceful shutdown via the `SHUTDOWN` command or `Ctrl+C`;
+- AOF persistence at `data/appendonly.aof`;
+- AOF compaction with `REWRITEAOF`;
+- manual hash table;
+- collisions resolved with linked lists (separate chaining);
+- resize and rehashing as the table grows;
+- TTL with lazy expiration;
+- unit tests with JUnit Jupiter.
 
-## Arquitetura do projeto
+## Project architecture
 
-Estrutura principal:
+Main layout:
 
 ```text
 src/main/java/com/joaopedro/miniredis
@@ -82,67 +82,67 @@ src/main/java/com/joaopedro/miniredis
 
 ### `core`
 
-Contem a logica principal do banco em memoria.
+Holds the main in-memory database logic.
 
-`MiniRedis` oferece operacoes como `set`, `get`, `del`, `exists`, `expire`, `ttl`, `keys` e `flushAll`. Ele usa a `MiniHashTable` como estrutura de armazenamento.
+`MiniRedis` exposes operations such as `set`, `get`, `del`, `exists`, `expire`, `ttl`, `keys` and `flushAll`. It uses `MiniHashTable` as its storage structure.
 
-`Entry` representa o valor salvo. Alem da string, ela guarda metadados como `expiresAt`, usado para TTL.
+`Entry` represents a stored value. Beyond the string, it also carries metadata such as `expiresAt`, used for TTL.
 
 ### `core.hash`
 
-Contem a tabela hash manual.
+Holds the manual hash table.
 
-`MiniHashTable` gerencia os buckets, calcula indices, trata colisao, faz resize e rehashing.
+`MiniHashTable` manages the buckets, computes indices, handles collisions and performs resize and rehashing.
 
-`HashNode` representa um no dentro de um bucket. Cada no guarda a chave, a `Entry` e a referencia para o proximo no da lista ligada.
+`HashNode` represents a node inside a bucket. Each node stores the key, the `Entry` and the reference to the next node in the linked list.
 
-`HashEntry` e usado para exportar pares chave/valor em operacoes como persistencia e listagem.
+`HashEntry` is used to export key/value pairs in operations such as persistence and listing.
 
 ### `command`
 
-Contem o processador de comandos.
+Holds the command processor.
 
-`CommandProcessor` recebe uma linha de texto, identifica o comando e chama o metodo correspondente em `MiniRedis`. Ele tambem registra comandos que alteram estado no AOF.
+`CommandProcessor` receives a text line, identifies the command and calls the matching method on `MiniRedis`. It also appends state-mutating commands to the AOF.
 
 ### `server`
 
-Contem o servidor TCP.
+Holds the TCP server.
 
-`RedisServer` abre a porta configurada, carrega o AOF ao iniciar e aceita conexoes de clientes.
+`RedisServer` opens the configured port, loads the AOF on startup and accepts incoming clients.
 
-`ClientHandler` atende cada cliente em uma thread separada. Ele le comandos por linha, envia respostas e encerra a conexao quando recebe `QUIT`.
+`ClientHandler` serves each client on a separate thread. It reads commands line by line, writes the responses back and closes the connection when `QUIT` is received.
 
 ### `client`
 
-Contem o cliente TCP do Mini Redis.
+Holds the TCP client of Mini Redis.
 
-`MiniRedisClient` abre a conexao com o servidor, envia comandos e devolve a resposta. Cada comando recebe exatamente uma linha de resposta, seguindo o protocolo do servidor.
+`MiniRedisClient` opens a connection to the server, sends commands and returns the response. Each command receives exactly one response line, matching the server protocol.
 
-`ClientMain` e o ponto de entrada do cliente interativo. Ele le comandos do terminal, envia para o servidor pelo `MiniRedisClient` e imprime cada resposta. Encerra ao digitar `QUIT`.
-
-### `persistence`
-
-Contem a persistencia AOF.
-
-`AppendOnlyFile` grava comandos em arquivo, recarrega o estado ao iniciar e reescreve o arquivo com `REWRITEAOF`.
+`ClientMain` is the entry point of the interactive client. It reads commands from the terminal, forwards them to the server through `MiniRedisClient` and prints each response. It exits when `QUIT` is typed.
 
 ### `config`
 
-Contem a configuracao do servidor.
+Holds the server configuration.
 
-`ServerConfig` e um objeto imutavel com `port`, `aofPath` e `maxClients`. Ele valida cada campo no construtor e oferece um parser `parse(String[] args)` que entende as flags `--port`, `--aof` e `--max-clients`. Argumentos invalidos viram `IllegalArgumentException` com mensagem explicativa, e `usage()` devolve o texto de ajuda usado pelo `Main` quando o parsing falha.
+`ServerConfig` is an immutable object with `port`, `aofPath` and `maxClients`. It validates each field in the constructor and offers `parse(String[] args)`, which understands the flags `--port`, `--aof` and `--max-clients`. Invalid arguments throw `IllegalArgumentException` with a descriptive message, and `usage()` returns the help text printed by `Main` when parsing fails.
+
+### `persistence`
+
+Holds the AOF persistence layer.
+
+`AppendOnlyFile` writes commands to a file, reloads state on startup and rewrites the file with `REWRITEAOF`.
 
 ### `util`
 
-Contem utilitarios compartilhados.
+Holds shared utilities.
 
-`Logger` e uma classe simples de log com tres niveis: `INFO`, `WARN` e `ERROR`. Cada instancia recebe o nome do componente que esta logando. INFO vai para `stdout`; WARN e ERROR vao para `stderr`. Todas as linhas seguem o formato:
+`Logger` is a simple log class with three levels: `INFO`, `WARN` and `ERROR`. Each instance is bound to a component name. INFO goes to `stdout`; WARN and ERROR go to `stderr`. Every line follows the format:
 
 ```text
-[yyyy-MM-dd HH:mm:ss] [LEVEL] [Component] mensagem
+[yyyy-MM-dd HH:mm:ss] [LEVEL] [Component] message
 ```
 
-Exemplos reais do servidor em uma sessao curta:
+Sample server output during a short session:
 
 ```text
 [2026-05-27 21:06:10] [INFO ] [RedisServer] Server started on port 6379
@@ -153,11 +153,11 @@ Exemplos reais do servidor em uma sessao curta:
 [2026-05-27 21:06:16] [INFO ] [RedisServer] Server fully stopped
 ```
 
-O cliente CLI (`ClientMain`, `MiniRedisClient`) nao usa o `Logger`: as mensagens do cliente sao parte da UX interativa, nao logs de servico.
+The interactive client (`ClientMain`, `MiniRedisClient`) does not use `Logger`: its messages are part of the CLI user experience, not service logs.
 
-## Como funciona a MiniHashTable
+## How the MiniHashTable works
 
-A `MiniHashTable` usa um array de buckets:
+`MiniHashTable` uses an array of buckets:
 
 ```text
 buckets[0]
@@ -166,56 +166,56 @@ buckets[2]
 ...
 ```
 
-Cada chave passa por uma funcao de hash. O resultado define em qual posicao do array a chave deve ficar.
+Each key is run through a hash function. The result chooses which array slot the key belongs to.
 
-Fluxo simplificado:
+Simplified flow:
 
 ```text
 key -> hash(key) -> index -> bucket
 ```
 
-Cada bucket aponta para um `HashNode`. Quando duas chaves caem no mesmo bucket, acontece uma colisao. O projeto resolve isso com lista ligada:
+Each bucket points to a `HashNode`. When two keys land on the same bucket, a collision happens. The project resolves it with a linked list:
 
 ```text
 buckets[3] -> HashNode("name") -> HashNode("city") -> null
 ```
 
-Esse modelo e conhecido como separate chaining.
+This approach is known as separate chaining.
 
-Quando a tabela cresce demais, ela faz resize:
+When the table grows large enough, it resizes:
 
-1. cria um novo array com capacidade maior;
-2. percorre os buckets antigos;
-3. recalcula o indice de cada chave;
-4. reinsere os nos na nova tabela.
+1. allocate a new array with a larger capacity;
+2. walk the old buckets;
+3. recompute the index of every key;
+4. reinsert the nodes into the new table.
 
-Esse processo e o rehashing.
+That process is the rehashing step.
 
-## Como funciona o TTL
+## How TTL works
 
-Cada `Entry` pode ter um campo `expiresAt`.
+Every `Entry` can carry an `expiresAt` field.
 
-Quando uma chave nao tem expiracao, `expiresAt` fica `null`.
+When a key has no expiration, `expiresAt` is `null`.
 
-Quando o comando `EXPIRE key seconds` e usado, o sistema calcula um timestamp futuro em milissegundos:
+When the `EXPIRE key seconds` command runs, the system computes a future timestamp in milliseconds:
 
 ```text
-expiresAt = agora + segundos
+expiresAt = now + seconds
 ```
 
-O comando `TTL key` retorna:
+The `TTL key` command returns:
 
-- `-2` se a chave nao existe;
-- `-1` se a chave existe sem expiracao;
-- o tempo restante, em segundos, se a chave tem expiracao.
+- `-2` when the key does not exist;
+- `-1` when the key exists without expiration;
+- the remaining time, in seconds, when the key has expiration.
 
-O projeto usa lazy expiration. Isso significa que a chave expirada e removida quando alguem tenta acessar, consultar ou listar essa chave. Nao existe uma thread separada limpando expiracoes em segundo plano.
+The project uses lazy expiration. That means an expired key is removed only when someone tries to read, check or list it. There is no background thread cleaning up expirations.
 
-## Como funciona o AOF
+## How AOF works
 
-AOF significa append-only file.
+AOF stands for append-only file.
 
-Em vez de salvar o banco inteiro a cada mudanca, o projeto grava os comandos que alteram estado:
+Instead of dumping the whole database on every change, the project records the commands that mutate state:
 
 ```text
 SET name Joao
@@ -224,69 +224,75 @@ DEL name
 FLUSHALL
 ```
 
-Ao iniciar, o servidor le `data/appendonly.aof` e reexecuta os comandos para reconstruir o estado em memoria.
+On startup the server reads `data/appendonly.aof` and replays the commands to rebuild the in-memory state.
 
-O comando `REWRITEAOF` compacta o arquivo. Ele remove historico desnecessario e grava apenas o estado atual das chaves ativas.
+The `REWRITEAOF` command compacts the file. It drops unnecessary history and writes only the current state of the active keys.
 
-Exemplo: se uma chave foi alterada varias vezes, o rewrite salva apenas o valor final.
+Example: if a key was updated several times, the rewrite saves only the final value.
 
-## Como rodar
+## Thread pool
 
-Requisitos:
+`RedisServer` accepts connections in a loop and dispatches each one to a fixed-size thread pool (`Executors.newFixedThreadPool`). The pool size defaults to `10` and can be tuned with `--max-clients`. Each `ClientHandler` runs on a pool thread and reads commands sequentially from its socket; the shared `CommandProcessor` and `MiniHashTable` use `synchronized` methods to keep state consistent under concurrent access.
 
-- Java 17 ou superior;
-- Maven, para o fluxo principal de build e testes.
+When the server stops, `shutdownThreadPool` calls `shutdown()`, waits up to 5 seconds for active handlers to finish and falls back to `shutdownNow()` if any of them are still running.
 
-Compile o projeto:
+## How to run
+
+Requirements:
+
+- Java 17 or newer;
+- Maven, for the main build and test flow.
+
+Compile the project:
 
 ```powershell
 mvn compile
 ```
 
-Rode os testes:
+Run the tests:
 
 ```powershell
 mvn test
 ```
 
-Inicie o servidor:
+Start the server:
 
 ```powershell
 java -cp target\classes com.joaopedro.miniredis.Main
 ```
 
-Sem argumentos, o servidor inicia com os valores padrao: porta `6379`, AOF em `data/appendonly.aof` e ate `10` clientes simultaneos.
+With no arguments, the server starts with the default values: port `6379`, AOF at `data/appendonly.aof` and up to `10` concurrent clients.
 
-### Argumentos do servidor
+### Server arguments
 
-A classe `Main` aceita tres flags opcionais para customizar a execucao:
+The `Main` class accepts three optional flags to customize execution:
 
-| Flag | Tipo | Default | Descricao |
+| Flag | Type | Default | Description |
 | --- | --- | --- | --- |
-| `--port` | inteiro 1..65535 | `6379` | porta TCP em que o servidor escuta |
-| `--aof` | caminho | `data/appendonly.aof` | arquivo de persistencia AOF |
-| `--max-clients` | inteiro > 0 | `10` | tamanho do thread pool de clientes |
+| `--port` | integer 1..65535 | `6379` | TCP port the server listens on |
+| `--aof` | path | `data/appendonly.aof` | AOF persistence file |
+| `--max-clients` | integer > 0 | `10` | thread pool size for clients |
 
-Exemplos:
+Examples:
 
 ```powershell
-# todos os valores customizados
+# every value customized
 java -cp target\classes com.joaopedro.miniredis.Main --port 6380 --aof data/test.aof --max-clients 20
 
-# apenas a porta
+# only the port
 java -cp target\classes com.joaopedro.miniredis.Main --port 6380
 
-# apenas o thread pool
+# only the thread pool size
 java -cp target\classes com.joaopedro.miniredis.Main --max-clients 50
 ```
 
-Conectar o cliente Java em uma porta customizada:
+Connect the Java client to a custom port:
 
 ```powershell
 java -cp target\classes com.joaopedro.miniredis.ClientMain 127.0.0.1 6380
 ```
 
-Argumentos invalidos imprimem mensagem de erro + uso e o processo sai com exit code `2`. Exemplo:
+Invalid arguments print an error message plus the usage text and the process exits with code `2`. Example:
 
 ```text
 Error: --port requires an integer, got: abc
@@ -298,7 +304,7 @@ Options:
   --max-clients <n>     Max concurrent clients (>0, default 10)
 ```
 
-Se o Maven nao estiver disponivel no `PATH`, compile com `javac`:
+If Maven is not on the `PATH`, compile with `javac`:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path target\classes
@@ -306,23 +312,23 @@ javac --release 17 -encoding UTF-8 -d target\classes (Get-ChildItem -Recurse src
 java -cp target\classes com.joaopedro.miniredis.Main
 ```
 
-## Como rodar o cliente Java
+## How to run the Java client
 
-Com o servidor ja rodando, abra outro terminal e inicie o cliente:
+With the server running, open another terminal and start the client:
 
 ```powershell
 java -cp target\classes com.joaopedro.miniredis.ClientMain
 ```
 
-Por padrao, o cliente conecta em `localhost:6379`. Para apontar para outro host ou porta, passe os argumentos:
+By default the client connects to `localhost:6379`. To target another host or port, pass them as arguments:
 
 ```powershell
 java -cp target\classes com.joaopedro.miniredis.ClientMain 127.0.0.1 6379
 ```
 
-O cliente exibe as linhas de boas-vindas do servidor e mostra o prompt `>`. Cada linha digitada e enviada como comando e a resposta e impressa logo abaixo.
+The client prints the server welcome lines and shows a `>` prompt. Each line you type is sent as a command and the response is printed below it.
 
-Exemplo de sessao:
+Sample session:
 
 ```text
 Connected to localhost:6379
@@ -338,32 +344,32 @@ joao
 Bye
 ```
 
-Para encerrar a sessao, digite `QUIT`. O cliente envia o comando ao servidor, imprime a resposta `Bye` e fecha o socket.
+To end the session, type `QUIT`. The client sends the command to the server, prints the `Bye` response and closes the socket.
 
-## Como rodar o benchmark
+## How to run the benchmark
 
-O projeto inclui um benchmark simples e educacional para ter uma nocao do desempenho da tabela hash e dos comandos basicos:
+The project ships with a simple educational benchmark used to get a feel for the hash table and basic command performance:
 
 ```powershell
 java -cp target\classes com.joaopedro.miniredis.BenchmarkMain
 ```
 
-Por padrao roda 100 mil operacoes por cenario. Para mudar, passe o numero como argumento:
+By default it runs 100,000 operations per scenario. Override with an argument:
 
 ```powershell
 java -cp target\classes com.joaopedro.miniredis.BenchmarkMain 500000
 ```
 
-O benchmark mede o nucleo do `MiniRedis` em memoria. Ele **nao** passa pelo TCP, pelo AOF nem pelo parser de comandos. Os cenarios sao:
+The benchmark exercises the in-memory `MiniRedis` core. It does **not** go through TCP, AOF or the command parser. The scenarios are:
 
-- SET puro em banco vazio;
-- GET puro em banco pre-populado;
-- DEL puro em banco pre-populado;
-- carga mista 50/50 alternando SET e GET.
+- pure SET against an empty database;
+- pure GET against a pre-populated database;
+- pure DEL against a pre-populated database;
+- mixed 50/50 workload alternating SET and GET.
 
-> **Importante:** este benchmark **nao substitui o JMH**. Ele e didatico, sem amostragem estatistica, sem isolamento de medicao por iteracao e sem controle fino de warmup. Os numeros dependem fortemente da maquina, da JVM e da carga do sistema. Use para comparar versoes do projeto entre si, nao como medida absoluta.
+> **Important:** this benchmark **does not replace JMH**. It is educational, with no statistical sampling, no per-iteration isolation and no precise warmup control. The numbers depend heavily on the machine, the JVM and the system load. Use them to compare project versions to each other, not as an absolute measure.
 
-Exemplo de saida (Java 17, 100 mil operacoes):
+Sample output (Java 17, 100,000 operations):
 
 ```text
 ========================================================
@@ -389,9 +395,9 @@ Done. sink=16796288030000
 ========================================================
 ```
 
-## Como testar via TCP no PowerShell
+## How to test via TCP from PowerShell
 
-Com o servidor rodando, abra outro PowerShell:
+With the server running, open another PowerShell:
 
 ```powershell
 $client = [System.Net.Sockets.TcpClient]::new("127.0.0.1", 6379)
@@ -403,14 +409,14 @@ $reader.ReadLine()
 $reader.ReadLine()
 ```
 
-Envie comandos assim:
+Send commands like this:
 
 ```powershell
 $writer.WriteLine("PING")
 $reader.ReadLine()
 ```
 
-Para encerrar a conexao:
+To close the connection:
 
 ```powershell
 $writer.WriteLine("QUIT")
@@ -418,13 +424,29 @@ $reader.ReadLine()
 $client.Close()
 ```
 
-Um guia mais detalhado esta em:
+A more detailed guide lives at:
 
 ```text
 docs/manual-tcp-test.md
 ```
 
-## Exemplos de comandos
+## Graceful shutdown
+
+The server can be shut down in two controlled ways:
+
+- sending the `SHUTDOWN` command from any connected client;
+- pressing `Ctrl+C` in the terminal where the server is running.
+
+In both cases the server:
+
+1. stops accepting new connections;
+2. closes the `ServerSocket`;
+3. waits up to 5 seconds for active clients to finish;
+4. shuts down the thread pool, falling back to `shutdownNow` if the timeout is hit.
+
+The AOF does not need any special close handling: every `append` and `rewrite` opens, writes and closes the file inside a synchronized block. Operations that already received `OK` are on disk before the server responds.
+
+## Command examples
 
 ```text
 PING
@@ -464,25 +486,9 @@ QUIT
 Bye
 ```
 
-## Shutdown gracioso
+## Tests
 
-O servidor pode ser encerrado de duas formas controladas:
-
-- enviando o comando `SHUTDOWN` por qualquer cliente conectado;
-- pressionando `Ctrl+C` no terminal onde o servidor esta rodando.
-
-Em ambos os casos, o servidor:
-
-1. para de aceitar novas conexoes;
-2. fecha o `ServerSocket`;
-3. espera ate 5 segundos os clientes ativos terminarem;
-4. encerra o thread pool, com `shutdownNow` como fallback se o timeout estourar.
-
-O AOF nao precisa ser fechado de forma especial: cada `append` e `rewrite` abre, escreve e fecha o arquivo dentro de um bloco sincronizado. Operacoes que ja receberam `OK` estao no disco antes de o servidor responder.
-
-## Testes
-
-O projeto tem testes para:
+The project has tests for:
 
 - `MiniHashTable`;
 - `MiniRedis`;
@@ -493,27 +499,27 @@ O projeto tem testes para:
 - `Logger`;
 - `ServerConfig`.
 
-Rodar todos:
+Run them all:
 
 ```powershell
 mvn test
 ```
 
-## Limitacoes atuais
+## Current limitations
 
-- Nao implementa o protocolo RESP real.
-- Nao e compativel com `redis-cli`.
-- Nao tem persistencia binaria.
-- O parser e simples e ainda nao trata aspas.
-- O servidor nao tem shutdown gracioso.
-- O projeto e educacional, nao indicado para uso em producao.
+- Does not implement the real RESP protocol.
+- Not compatible with `redis-cli`.
+- No binary persistence (snapshot/RDB).
+- The parser is simple and does not handle quoting yet.
+- `SHUTDOWN` is not authenticated.
+- Educational project, not meant for production use.
 
-## Melhorias futuras
+## Future improvements
 
-- Implementar uma versao simplificada do protocolo RESP.
-- Adicionar snapshot.
-- Implementar comandos adicionais.
+- Implement a simplified version of the RESP protocol.
+- Add snapshot persistence.
+- Implement additional commands.
 
 ## Status
 
-Projeto em desenvolvimento. A base atual ja cobre armazenamento em memoria, comandos principais, TTL, persistencia AOF, servidor TCP e testes unitarios.
+Project under development. The current baseline already covers in-memory storage, the main commands, TTL, AOF persistence, the TCP server, graceful shutdown, a custom Java client, a simple benchmark and unit tests.

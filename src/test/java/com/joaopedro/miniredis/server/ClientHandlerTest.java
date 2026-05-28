@@ -15,13 +15,14 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class ClientHandlerTest {
-
+class ClientHandlerTest
+{
     @TempDir
     Path tempDir;
 
     @Test
-    void quitWithExtraSpacesDisconnectsTcpClient() throws Exception {
+    void quitWithExtraSpacesDisconnectsTcpClient() throws Exception
+    {
         ServerSocket serverSocket = new ServerSocket(0);
         Thread serverThread = new Thread(() -> acceptOneClient(serverSocket));
         serverThread.start();
@@ -44,18 +45,23 @@ class ClientHandlerTest {
         serverSocket.close();
     }
 
-    private void acceptOneClient(ServerSocket serverSocket) {
-        try {
+    private void acceptOneClient(ServerSocket serverSocket)
+    {
+        try
+        {
             Socket socket = serverSocket.accept();
             ClientHandler handler = new ClientHandler(socket, newProcessor());
 
             handler.run();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             throw new RuntimeException(e);
         }
     }
 
-    private CommandProcessor newProcessor() {
+    private CommandProcessor newProcessor()
+    {
         Path aofPath = tempDir.resolve("appendonly.aof");
 
         return new CommandProcessor(new MiniRedis(), new AppendOnlyFile(aofPath.toString()));

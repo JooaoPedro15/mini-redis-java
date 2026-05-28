@@ -14,13 +14,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class AppendOnlyFileTest {
-
+class AppendOnlyFileTest
+{
     @TempDir
     Path tempDir;
 
     @Test
-    void loadRestoresSetCommands() {
+    void loadRestoresSetCommands()
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
 
@@ -34,7 +35,8 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void loadRestoresDelCommands() {
+    void loadRestoresDelCommands()
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
 
@@ -48,7 +50,8 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void loadRestoresExpireAtCommands() {
+    void loadRestoresExpireAtCommands()
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
         long expiresAt = System.currentTimeMillis() + 5000;
@@ -65,7 +68,8 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void loadRestoresFlushAllCommands() {
+    void loadRestoresFlushAllCommands()
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
 
@@ -80,7 +84,8 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void rewriteRemovesOldHistoryAndKeepsCurrentState() throws IOException {
+    void rewriteRemovesOldHistoryAndKeepsCurrentState() throws IOException
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
 
@@ -99,7 +104,8 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void rewriteKeepsExpirationForActiveKey() throws IOException {
+    void rewriteKeepsExpirationForActiveKey() throws IOException
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
         long expiresAt = System.currentTimeMillis() + 5000;
@@ -116,7 +122,8 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void rewriteDoesNotKeepExpiredKeys() throws IOException {
+    void rewriteDoesNotKeepExpiredKeys() throws IOException
+    {
         AppendOnlyFile aof = newAof();
         MiniRedis redis = new MiniRedis();
 
@@ -134,22 +141,26 @@ class AppendOnlyFileTest {
     }
 
     @Test
-    void testsUseTemporaryAofPath() {
+    void testsUseTemporaryAofPath()
+    {
         Path aofPath = aofPath();
 
         assertTrue(aofPath.startsWith(tempDir));
         assertFalse(aofPath.toString().contains("data"));
     }
 
-    private AppendOnlyFile newAof() {
+    private AppendOnlyFile newAof()
+    {
         return new AppendOnlyFile(aofPath().toString());
     }
 
-    private Path aofPath() {
+    private Path aofPath()
+    {
         return tempDir.resolve("appendonly.aof");
     }
 
-    private List<String> readAofLines() throws IOException {
+    private List<String> readAofLines() throws IOException
+    {
         return Files.readAllLines(aofPath());
     }
 }

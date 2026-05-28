@@ -17,13 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class RedisServerTest {
-
+class RedisServerTest
+{
     @TempDir
     Path tempDir;
 
     @Test
-    void shutdownCommandStopsServerGracefully() throws Exception {
+    void shutdownCommandStopsServerGracefully() throws Exception
+    {
         int port = findFreePort();
         String aofPath = tempDir.resolve("appendonly.aof").toString();
 
@@ -51,14 +52,16 @@ class RedisServerTest {
         serverThread.join(5000);
         assertFalse(serverThread.isAlive(), "server thread should have stopped after SHUTDOWN");
 
-        assertThrows(ConnectException.class, () -> {
+        assertThrows(ConnectException.class, () ->
+        {
             Socket reconnect = new Socket("localhost", port);
             reconnect.close();
         });
     }
 
     @Test
-    void stopIsIdempotent() throws Exception {
+    void stopIsIdempotent() throws Exception
+    {
         int port = findFreePort();
         String aofPath = tempDir.resolve("appendonly.aof").toString();
 
@@ -76,7 +79,8 @@ class RedisServerTest {
         assertFalse(serverThread.isAlive(), "server thread should have stopped");
     }
 
-    private int findFreePort() throws IOException {
+    private int findFreePort() throws IOException
+    {
         ServerSocket socket = new ServerSocket(0);
         int port = socket.getLocalPort();
 
@@ -85,15 +89,20 @@ class RedisServerTest {
         return port;
     }
 
-    private void waitForPortOpen(int port, long timeoutMs) throws InterruptedException {
+    private void waitForPortOpen(int port, long timeoutMs) throws InterruptedException
+    {
         long deadline = System.currentTimeMillis() + timeoutMs;
 
-        while (System.currentTimeMillis() < deadline) {
-            try {
+        while (System.currentTimeMillis() < deadline)
+        {
+            try
+            {
                 Socket probe = new Socket("localhost", port);
                 probe.close();
                 return;
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 Thread.sleep(50);
             }
         }

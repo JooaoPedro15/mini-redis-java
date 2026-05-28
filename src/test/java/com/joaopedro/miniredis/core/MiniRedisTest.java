@@ -6,10 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class MiniRedisTest {
-
+class MiniRedisTest
+{
     @Test
-    void setAndGetStoreValue() {
+    void setAndGetStoreValue()
+    {
         MiniRedis redis = new MiniRedis();
 
         assertEquals("OK", redis.set("name", "John"));
@@ -17,7 +18,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void delRemovesExistingKey() {
+    void delRemovesExistingKey()
+    {
         MiniRedis redis = new MiniRedis();
         redis.set("name", "John");
 
@@ -27,7 +29,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void existsReturnsOneOnlyForExistingKey() {
+    void existsReturnsOneOnlyForExistingKey()
+    {
         MiniRedis redis = new MiniRedis();
 
         assertEquals(0, redis.exists("name"));
@@ -42,7 +45,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void expireDefinesRelativeExpirationForExistingKey() {
+    void expireDefinesRelativeExpirationForExistingKey()
+    {
         MiniRedis redis = new MiniRedis();
         redis.set("session", "active");
 
@@ -55,7 +59,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void expireAtDefinesAbsoluteExpirationForExistingKey() {
+    void expireAtDefinesAbsoluteExpirationForExistingKey()
+    {
         MiniRedis redis = new MiniRedis();
         redis.set("session", "active");
 
@@ -68,7 +73,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void ttlReturnsMinusOneForKeyWithoutExpiration() {
+    void ttlReturnsMinusOneForKeyWithoutExpiration()
+    {
         MiniRedis redis = new MiniRedis();
 
         redis.set("name", "John");
@@ -77,14 +83,16 @@ class MiniRedisTest {
     }
 
     @Test
-    void ttlReturnsMinusTwoForMissingKey() {
+    void ttlReturnsMinusTwoForMissingKey()
+    {
         MiniRedis redis = new MiniRedis();
 
         assertEquals(-2, redis.ttl("missing"));
     }
 
     @Test
-    void expiredKeyIsRemovedWhenRead() {
+    void expiredKeyIsRemovedWhenRead()
+    {
         MiniRedis redis = new MiniRedis();
         redis.set("temporary", "value");
 
@@ -96,7 +104,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void flushAllRemovesAllKeys() {
+    void flushAllRemovesAllKeys()
+    {
         MiniRedis redis = new MiniRedis();
 
         redis.set("first", "1");
@@ -110,7 +119,8 @@ class MiniRedisTest {
     }
 
     @Test
-    void keysReturnsOnlyActiveKeys() {
+    void keysReturnsOnlyActiveKeys()
+    {
         MiniRedis redis = new MiniRedis();
 
         redis.set("active", "1");

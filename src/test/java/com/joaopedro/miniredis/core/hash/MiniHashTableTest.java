@@ -9,10 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class MiniHashTableTest {
-
+class MiniHashTableTest
+{
     @Test
-    void putAndGetStoreEntry() {
+    void putAndGetStoreEntry()
+    {
         MiniHashTable table = new MiniHashTable();
         Entry entry = new Entry("bar");
 
@@ -23,7 +24,8 @@ class MiniHashTableTest {
     }
 
     @Test
-    void putUpdatesExistingKeyWithoutIncreasingSize() {
+    void putUpdatesExistingKeyWithoutIncreasingSize()
+    {
         MiniHashTable table = new MiniHashTable();
 
         table.put("name", new Entry("first"));
@@ -34,7 +36,8 @@ class MiniHashTableTest {
     }
 
     @Test
-    void removeDeletesKeyAndReturnsRemovedEntry() {
+    void removeDeletesKeyAndReturnsRemovedEntry()
+    {
         MiniHashTable table = new MiniHashTable();
         table.put("name", new Entry("John"));
 
@@ -47,7 +50,8 @@ class MiniHashTableTest {
     }
 
     @Test
-    void containsKeyReturnsWhetherKeyExists() {
+    void containsKeyReturnsWhetherKeyExists()
+    {
         MiniHashTable table = new MiniHashTable();
 
         table.put("name", new Entry("John"));
@@ -57,28 +61,33 @@ class MiniHashTableTest {
     }
 
     @Test
-    void resizeKeepsAllEntriesAfterRehashing() {
+    void resizeKeepsAllEntriesAfterRehashing()
+    {
         MiniHashTable table = new MiniHashTable();
         int initialCapacity = table.capacity();
 
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++)
+        {
             table.put("key" + i, new Entry("value" + i));
         }
 
         assertTrue(table.capacity() > initialCapacity);
         assertEquals(20, table.size());
 
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++)
+        {
             assertEquals("value" + i, table.get("key" + i).getValue());
         }
     }
 
     @Test
-    void clearRemovesAllEntriesAndResetsCapacity() {
+    void clearRemovesAllEntriesAndResetsCapacity()
+    {
         MiniHashTable table = new MiniHashTable();
         int initialCapacity = table.capacity();
 
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++)
+        {
             table.put("key" + i, new Entry("value" + i));
         }
 
@@ -90,7 +99,8 @@ class MiniHashTableTest {
     }
 
     @Test
-    void keysReturnsStoredKeys() {
+    void keysReturnsStoredKeys()
+    {
         MiniHashTable table = new MiniHashTable();
 
         table.put("first", new Entry("1"));
@@ -103,11 +113,14 @@ class MiniHashTableTest {
         assertContains(keys, "second");
     }
 
-    private void assertContains(String[] values, String expected) {
+    private void assertContains(String[] values, String expected)
+    {
         boolean found = false;
 
-        for (int i = 0; i < values.length; i++) {
-            if (expected.equals(values[i])) {
+        for (int i = 0; i < values.length; i++)
+        {
+            if (expected.equals(values[i]))
+            {
                 found = true;
             }
         }
