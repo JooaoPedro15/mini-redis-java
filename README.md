@@ -57,6 +57,7 @@ Estrutura principal:
 src/main/java/com/joaopedro/miniredis
   Main.java
   ClientMain.java
+  BenchmarkMain.java
   core/
     Entry.java
     MiniRedis.java
@@ -290,6 +291,55 @@ Bye
 
 Para encerrar a sessao, digite `QUIT`. O cliente envia o comando ao servidor, imprime a resposta `Bye` e fecha o socket.
 
+## Como rodar o benchmark
+
+O projeto inclui um benchmark simples e educacional para ter uma nocao do desempenho da tabela hash e dos comandos basicos:
+
+```powershell
+java -cp target\classes com.joaopedro.miniredis.BenchmarkMain
+```
+
+Por padrao roda 100 mil operacoes por cenario. Para mudar, passe o numero como argumento:
+
+```powershell
+java -cp target\classes com.joaopedro.miniredis.BenchmarkMain 500000
+```
+
+O benchmark mede o nucleo do `MiniRedis` em memoria. Ele **nao** passa pelo TCP, pelo AOF nem pelo parser de comandos. Os cenarios sao:
+
+- SET puro em banco vazio;
+- GET puro em banco pre-populado;
+- DEL puro em banco pre-populado;
+- carga mista 50/50 alternando SET e GET.
+
+> **Importante:** este benchmark **nao substitui o JMH**. Ele e didatico, sem amostragem estatistica, sem isolamento de medicao por iteracao e sem controle fino de warmup. Os numeros dependem fortemente da maquina, da JVM e da carga do sistema. Use para comparar versoes do projeto entre si, nao como medida absoluta.
+
+Exemplo de saida (Java 17, 100 mil operacoes):
+
+```text
+========================================================
+Mini Redis - Simple Benchmark
+========================================================
+This is NOT JMH. Numbers are rough and machine-dependent.
+Use for relative comparison, not as a definitive measure.
+--------------------------------------------------------
+Operations per scenario: 100000
+Warmup operations:       10000
+========================================================
+
+Warmup: 10000 operations...
+Warmup done.
+
+[SET] 100000 ops in 29.92 ms = 3342067 ops/sec
+[GET] 100000 ops in 10.82 ms = 9245049 ops/sec
+[DEL] 100000 ops in 15.35 ms = 6514106 ops/sec
+[MIX 50/50 SET+GET] 100000 ops in 30.89 ms = 3236948 ops/sec
+
+========================================================
+Done. sink=16796288030000
+========================================================
+```
+
 ## Como testar via TCP no PowerShell
 
 Com o servidor rodando, abra outro PowerShell:
@@ -413,7 +463,6 @@ mvn test
 - Implementar uma versao simplificada do protocolo RESP.
 - Adicionar snapshot.
 - Implementar comandos adicionais.
-- Criar um benchmark simples.
 
 ## Status
 
