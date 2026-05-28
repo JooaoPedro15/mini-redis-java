@@ -3,6 +3,7 @@ package com.joaopedro.miniredis.persistence;
 import com.joaopedro.miniredis.core.MiniRedis;
 import com.joaopedro.miniredis.core.Entry;
 import com.joaopedro.miniredis.core.hash.HashEntry;
+import com.joaopedro.miniredis.util.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -14,6 +15,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class AppendOnlyFile {
+    private static final Logger log = new Logger("AppendOnlyFile");
+
     private String filePath;
 
     // Cria o gerenciador do arquivo AOF.
@@ -37,7 +40,7 @@ public class AppendOnlyFile {
 
             writer.close();
         } catch (IOException e) {
-            System.out.println("Error writing AOF: " + e.getMessage());
+            log.error("Error writing AOF: " + e.getMessage());
         }
     }
 
@@ -60,7 +63,7 @@ public class AppendOnlyFile {
 
                 reader.close();
             } catch (IOException e) {
-                System.out.println("Error reading AOF: " + e.getMessage());
+                log.error("Error reading AOF: " + e.getMessage());
             }
         }
     }
@@ -109,7 +112,7 @@ public class AppendOnlyFile {
 
                 redis.expireAt(parts[1], expiresAt);
             } catch (NumberFormatException e) {
-                System.out.println("Invalid EXPIREAT in AOF: " + parts[2]);
+                log.warn("Invalid EXPIREAT in AOF: " + parts[2]);
             }
         }
     }
@@ -152,7 +155,7 @@ public class AppendOnlyFile {
                     originalFile.toPath(),
                     StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            System.out.println("Error rewriting AOF: " + e.getMessage());
+            log.error("Error rewriting AOF: " + e.getMessage());
         }
     }
 

@@ -3,6 +3,7 @@ package com.joaopedro.miniredis.server;
 import com.joaopedro.miniredis.command.CommandProcessor;
 import com.joaopedro.miniredis.core.MiniRedis;
 import com.joaopedro.miniredis.persistence.AppendOnlyFile;
+import com.joaopedro.miniredis.util.Logger;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -16,6 +17,8 @@ public class RedisServer {
     private static final int MAX_CLIENTS = 10;
     private static final int SHUTDOWN_TIMEOUT_SECONDS = 5;
     private static final String DEFAULT_AOF_PATH = "data/appendonly.aof";
+
+    private static final Logger log = new Logger("RedisServer");
 
     private int port;
     private MiniRedis redis;
@@ -52,13 +55,13 @@ public class RedisServer {
         try {
             serverSocket = new ServerSocket(port);
 
-            System.out.println("Mini Redis server started on port " + port);
-            System.out.println("Max clients: " + MAX_CLIENTS);
+            log.info("Server started on port " + port);
+            log.info("Max clients: " + MAX_CLIENTS);
 
             acceptClients(serverSocket);
         } catch (IOException e) {
             if (!stopped) {
-                System.out.println("Server error: " + e.getMessage());
+                log.error("Server error: " + e.getMessage());
             }
         } finally {
             shutdownThreadPool();
@@ -77,10 +80,12 @@ public class RedisServer {
 
         stopped = true;
 
-        System.out.println("Shutting down Mini Redis server...");
+        log.info("Shutting down Mini Redis server...");
 
         closeServerSocket();
         shutdownThreadPool();
+
+        log.info("Server fully stopped");
     }
 
     // Agenda o stop em uma thread separada.
@@ -101,7 +106,7 @@ public class RedisServer {
             try {
                 Socket clientSocket = serverSocket.accept();
 
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
+                log.info("Client connected: " + clientSocket.getInetAddress());
 
                 ClientHandler handler = new ClientHandler(clientSocket, processor);
 
@@ -122,7 +127,7 @@ public class RedisServer {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                System.out.println("Error closing server socket: " + e.getMessage());
+                log.warn("Error closing server socket: " + e.getMessage());
             }
         }
     }

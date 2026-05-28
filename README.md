@@ -73,6 +73,8 @@ src/main/java/com/joaopedro/miniredis
     MiniRedisClient.java
   persistence/
     AppendOnlyFile.java
+  util/
+    Logger.java
 ```
 
 ### `core`
@@ -120,6 +122,29 @@ Contem o cliente TCP do Mini Redis.
 Contem a persistencia AOF.
 
 `AppendOnlyFile` grava comandos em arquivo, recarrega o estado ao iniciar e reescreve o arquivo com `REWRITEAOF`.
+
+### `util`
+
+Contem utilitarios compartilhados.
+
+`Logger` e uma classe simples de log com tres niveis: `INFO`, `WARN` e `ERROR`. Cada instancia recebe o nome do componente que esta logando. INFO vai para `stdout`; WARN e ERROR vao para `stderr`. Todas as linhas seguem o formato:
+
+```text
+[yyyy-MM-dd HH:mm:ss] [LEVEL] [Component] mensagem
+```
+
+Exemplos reais do servidor em uma sessao curta:
+
+```text
+[2026-05-27 21:06:10] [INFO ] [RedisServer] Server started on port 6379
+[2026-05-27 21:06:10] [INFO ] [RedisServer] Max clients: 10
+[2026-05-27 21:06:16] [INFO ] [RedisServer] Client connected: /127.0.0.1
+[2026-05-27 21:06:16] [INFO ] [RedisServer] Shutting down Mini Redis server...
+[2026-05-27 21:06:16] [INFO ] [ClientHandler] Client disconnected: /127.0.0.1
+[2026-05-27 21:06:16] [INFO ] [RedisServer] Server fully stopped
+```
+
+O cliente CLI (`ClientMain`, `MiniRedisClient`) nao usa o `Logger`: as mensagens do cliente sao parte da UX interativa, nao logs de servico.
 
 ## Como funciona a MiniHashTable
 
@@ -365,7 +390,8 @@ O projeto tem testes para:
 - `CommandProcessor`;
 - `AppendOnlyFile`;
 - `ClientHandler`;
-- `RedisServer`.
+- `RedisServer`;
+- `Logger`.
 
 Rodar todos:
 
@@ -385,7 +411,6 @@ mvn test
 ## Melhorias futuras
 
 - Implementar uma versao simplificada do protocolo RESP.
-- Melhorar logs do servidor.
 - Adicionar snapshot.
 - Implementar comandos adicionais.
 - Criar um benchmark simples.

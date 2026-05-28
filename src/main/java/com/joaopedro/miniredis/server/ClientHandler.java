@@ -1,6 +1,7 @@
 package com.joaopedro.miniredis.server;
 
 import com.joaopedro.miniredis.command.CommandProcessor;
+import com.joaopedro.miniredis.util.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,6 +11,8 @@ import java.net.Socket;
 
 public class ClientHandler implements Runnable
 {
+    private static final Logger log = new Logger("ClientHandler");
+
     private Socket clientSocket;
     private CommandProcessor processor;
 
@@ -22,21 +25,25 @@ public class ClientHandler implements Runnable
     }
 
     // Executa o atendimento do cliente em uma thread separada.
-    // Chama o metodo que le comandos e garante que o socket sera fechado no final.
+    // Chama o metodo que le comandos, registra a desconexao ao final e garante que
+    // o socket sera fechado mesmo em caso de erro.
     @Override
     public void run()
     {
+        String clientAddress = String.valueOf(clientSocket.getInetAddress());
+
         try
         {
             handleClient();
         }
         catch (IOException e)
         {
-            System.out.println("Client connection error: " + e.getMessage());
+            log.warn("Client connection error (" + clientAddress + "): " + e.getMessage());
         }
         finally
         {
             closeClientSocket();
+            log.info("Client disconnected: " + clientAddress);
         }
     }
 
@@ -88,7 +95,7 @@ public class ClientHandler implements Runnable
         }
         catch (IOException e)
         {
-            System.out.println("Error closing client socket: " + e.getMessage());
+            log.warn("Error closing client socket: " + e.getMessage());
         }
     }
 }
